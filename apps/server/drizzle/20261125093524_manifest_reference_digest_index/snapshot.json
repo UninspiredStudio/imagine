@@ -1,0 +1,57 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "3ed1727a-6d64-4cc3-8ddf-9223d983f4cc",
+  "prevIds": [
+    "500993dd-8614-4720-96bd-c15b2d9fbe4b"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "manifest_references",
+        "manifest_references_referenced_digest_idx"
+      ],
+      "writes": [
+        "s|idx|public.manifest_references_referenced_digest_idx",
+        "n|idx|public.manifest_references_referenced_digest_idx",
+        "e|idx|public.manifest_references_referenced_digest_idx",
+        "n|rel|public.manifest_references_referenced_digest_idx"
+      ],
+      "reads": [
+        "n|tbl|public.manifest_references",
+        "n|sch|public",
+        "n|col|public.manifest_references.referenced_digest"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "manifest_references",
+        "name": "manifest_references_referenced_digest_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "referenced_digest",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    }
+  ]
+}

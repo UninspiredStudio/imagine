@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "170f62b9-25e3-45f1-883b-0f52c1b6e7f6",
+  "prevIds": [
+    "30a20cb9-51f3-4497-8dd7-f9d0f6ef5661"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "uploads",
+        "digest_algorithm"
+      ],
+      "writes": [
+        "s|col|public.uploads.digest_algorithm",
+        "n|col|public.uploads.digest_algorithm",
+        "e|col|public.uploads.digest_algorithm"
+      ],
+      "reads": [
+        "n|tbl|public.uploads",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "uploads",
+        "name": "digest_algorithm",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

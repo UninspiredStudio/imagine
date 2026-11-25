@@ -1,0 +1,56 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "9a901bdb-cb73-4e89-aad5-ebf68c561a48",
+  "prevIds": [
+    "add8cb6c-ea19-41bc-9e5b-caf634683ef9"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "apikey"
+      ],
+      "writes": [
+        "s|fk|public.apikey.apikey_reference_id_user_id_fkey",
+        "n|fk|public.apikey.apikey_reference_id_user_id_fkey",
+        "e|fk|public.apikey.apikey_reference_id_user_id_fkey",
+        "n|con|public.apikey.apikey_reference_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.apikey",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.apikey.reference_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "apikey",
+        "name": "apikey_reference_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "reference_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    }
+  ]
+}

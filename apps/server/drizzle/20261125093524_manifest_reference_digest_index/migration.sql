@@ -1,0 +1,1 @@
+CREATE INDEX "manifest_references_referenced_digest_idx" ON "manifest_references" ("referenced_digest");

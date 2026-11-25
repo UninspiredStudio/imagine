@@ -1,0 +1,850 @@
+{
+  "type": "base",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "30a20cb9-51f3-4497-8dd7-f9d0f6ef5661",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "visibility"
+      ],
+      "writes": [
+        "s|enum|public.visibility",
+        "n|enum|public.visibility",
+        "e|enum|public.visibility",
+        "n|type|public.visibility"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "blobs"
+      ],
+      "writes": [
+        "s|tbl|public.blobs",
+        "n|tbl|public.blobs",
+        "e|tbl|public.blobs",
+        "n|rel|public.blobs",
+        "n|type|public.blobs",
+        "n|rel|public.blobs_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "manifest_references"
+      ],
+      "writes": [
+        "s|tbl|public.manifest_references",
+        "n|tbl|public.manifest_references",
+        "e|tbl|public.manifest_references",
+        "n|rel|public.manifest_references",
+        "n|type|public.manifest_references",
+        "n|rel|public.manifest_references_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "manifests"
+      ],
+      "writes": [
+        "s|tbl|public.manifests",
+        "n|tbl|public.manifests",
+        "e|tbl|public.manifests",
+        "n|rel|public.manifests",
+        "n|type|public.manifests",
+        "n|rel|public.manifests_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "repositories"
+      ],
+      "writes": [
+        "s|tbl|public.repositories",
+        "n|tbl|public.repositories",
+        "e|tbl|public.repositories",
+        "n|rel|public.repositories",
+        "n|type|public.repositories",
+        "n|rel|public.repositories_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.visibility"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "repository_blobs"
+      ],
+      "writes": [
+        "s|tbl|public.repository_blobs",
+        "n|tbl|public.repository_blobs",
+        "e|tbl|public.repository_blobs",
+        "n|rel|public.repository_blobs",
+        "n|type|public.repository_blobs",
+        "n|rel|public.repository_blobs_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "tags"
+      ],
+      "writes": [
+        "s|tbl|public.tags",
+        "n|tbl|public.tags",
+        "e|tbl|public.tags",
+        "n|rel|public.tags",
+        "n|type|public.tags",
+        "n|rel|public.tags_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "uploads"
+      ],
+      "writes": [
+        "s|tbl|public.uploads",
+        "n|tbl|public.uploads",
+        "e|tbl|public.uploads",
+        "n|rel|public.uploads",
+        "n|type|public.uploads",
+        "n|rel|public.uploads_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "manifest_references"
+      ],
+      "writes": [
+        "s|fk|public.manifest_references.manifest_references_fWpC9KvnN4Ch_fkey",
+        "n|fk|public.manifest_references.manifest_references_fWpC9KvnN4Ch_fkey",
+        "e|fk|public.manifest_references.manifest_references_fWpC9KvnN4Ch_fkey",
+        "n|con|public.manifest_references.manifest_references_fWpC9KvnN4Ch_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.manifest_references",
+        "n|sch|public",
+        "n|tbl|public.manifests",
+        "n|sch|public",
+        "n|col|public.manifest_references.repository",
+        "n|col|public.manifest_references.manifest_digest",
+        "n|col|public.manifests.repository",
+        "n|col|public.manifests.digest",
+        "e|uniqueness|public.manifests.digest.repository"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "manifests"
+      ],
+      "writes": [
+        "s|fk|public.manifests.manifests_repository_repositories_name_fkey",
+        "n|fk|public.manifests.manifests_repository_repositories_name_fkey",
+        "e|fk|public.manifests.manifests_repository_repositories_name_fkey",
+        "n|con|public.manifests.manifests_repository_repositories_name_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.manifests",
+        "n|sch|public",
+        "n|tbl|public.repositories",
+        "n|sch|public",
+        "n|col|public.manifests.repository",
+        "n|col|public.repositories.name",
+        "e|uniqueness|public.repositories.name"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "repository_blobs"
+      ],
+      "writes": [
+        "s|fk|public.repository_blobs.repository_blobs_repository_repositories_name_fkey",
+        "n|fk|public.repository_blobs.repository_blobs_repository_repositories_name_fkey",
+        "e|fk|public.repository_blobs.repository_blobs_repository_repositories_name_fkey",
+        "n|con|public.repository_blobs.repository_blobs_repository_repositories_name_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.repository_blobs",
+        "n|sch|public",
+        "n|tbl|public.repositories",
+        "n|sch|public",
+        "n|col|public.repository_blobs.repository",
+        "n|col|public.repositories.name",
+        "e|uniqueness|public.repositories.name"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "repository_blobs"
+      ],
+      "writes": [
+        "s|fk|public.repository_blobs.repository_blobs_blob_digest_blobs_digest_fkey",
+        "n|fk|public.repository_blobs.repository_blobs_blob_digest_blobs_digest_fkey",
+        "e|fk|public.repository_blobs.repository_blobs_blob_digest_blobs_digest_fkey",
+        "n|con|public.repository_blobs.repository_blobs_blob_digest_blobs_digest_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.repository_blobs",
+        "n|sch|public",
+        "n|tbl|public.blobs",
+        "n|sch|public",
+        "n|col|public.repository_blobs.blob_digest",
+        "n|col|public.blobs.digest",
+        "e|uniqueness|public.blobs.digest"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "tags"
+      ],
+      "writes": [
+        "s|fk|public.tags.tags_hdea3Ks98Tvy_fkey",
+        "n|fk|public.tags.tags_hdea3Ks98Tvy_fkey",
+        "e|fk|public.tags.tags_hdea3Ks98Tvy_fkey",
+        "n|con|public.tags.tags_hdea3Ks98Tvy_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.tags",
+        "n|sch|public",
+        "n|tbl|public.manifests",
+        "n|sch|public",
+        "n|col|public.tags.repository",
+        "n|col|public.tags.manifest_digest",
+        "n|col|public.manifests.repository",
+        "n|col|public.manifests.digest",
+        "e|uniqueness|public.manifests.digest.repository"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "uploads"
+      ],
+      "writes": [
+        "s|fk|public.uploads.uploads_repository_repositories_name_fkey",
+        "n|fk|public.uploads.uploads_repository_repositories_name_fkey",
+        "e|fk|public.uploads.uploads_repository_repositories_name_fkey",
+        "n|con|public.uploads.uploads_repository_repositories_name_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.uploads",
+        "n|sch|public",
+        "n|tbl|public.repositories",
+        "n|sch|public",
+        "n|col|public.uploads.repository",
+        "n|col|public.repositories.name",
+        "e|uniqueness|public.repositories.name"
+      ]
+    }
+  ],
+  "ddl": [
+    {
+      "schema": "public",
+      "name": "blobs",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "manifest_references",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "manifests",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "repositories",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "repository_blobs",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "tags",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "uploads",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "visibility",
+      "values": [
+        "private",
+        "public"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "table": "blobs",
+      "name": "digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "blobs",
+      "name": "size",
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "blobs",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifest_references",
+      "name": "repository",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifest_references",
+      "name": "manifest_digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifest_references",
+      "name": "referenced_digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "repository",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "media_type",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "bytes",
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "subject_digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "artifact_type",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "repositories",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "repositories",
+      "name": "visibility",
+      "type": "visibility",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'private'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "repositories",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "repository_blobs",
+      "name": "repository",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "repository_blobs",
+      "name": "blob_digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "tags",
+      "name": "repository",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "tags",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "tags",
+      "name": "manifest_digest",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "name": "repository",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manifest_references",
+      "name": "manifest_references_fWpC9KvnN4Ch_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "repository",
+        "manifest_digest"
+      ],
+      "schemaTo": "public",
+      "tableTo": "manifests",
+      "columnsTo": [
+        "repository",
+        "digest"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "manifests_repository_repositories_name_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "repository"
+      ],
+      "schemaTo": "public",
+      "tableTo": "repositories",
+      "columnsTo": [
+        "name"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "repository_blobs",
+      "name": "repository_blobs_repository_repositories_name_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "repository"
+      ],
+      "schemaTo": "public",
+      "tableTo": "repositories",
+      "columnsTo": [
+        "name"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "repository_blobs",
+      "name": "repository_blobs_blob_digest_blobs_digest_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "blob_digest"
+      ],
+      "schemaTo": "public",
+      "tableTo": "blobs",
+      "columnsTo": [
+        "digest"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "tags",
+      "name": "tags_hdea3Ks98Tvy_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "repository",
+        "manifest_digest"
+      ],
+      "schemaTo": "public",
+      "tableTo": "manifests",
+      "columnsTo": [
+        "repository",
+        "digest"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "name": "uploads_repository_repositories_name_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "repository"
+      ],
+      "schemaTo": "public",
+      "tableTo": "repositories",
+      "columnsTo": [
+        "name"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "manifest_references",
+      "name": "manifest_references_pkey",
+      "columns": [
+        "repository",
+        "manifest_digest",
+        "referenced_digest"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "manifests",
+      "name": "manifests_pkey",
+      "columns": [
+        "repository",
+        "digest"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "repository_blobs",
+      "name": "repository_blobs_pkey",
+      "columns": [
+        "repository",
+        "blob_digest"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "tags",
+      "name": "tags_pkey",
+      "columns": [
+        "repository",
+        "name"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "blobs",
+      "name": "blobs_pkey",
+      "columns": [
+        "digest"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "repositories",
+      "name": "repositories_pkey",
+      "columns": [
+        "name"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "name": "uploads_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    }
+  ]
+}
