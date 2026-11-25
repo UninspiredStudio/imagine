@@ -1,0 +1,151 @@
+---
+title: Email, users and invites
+description: Set up sign-in email, create the first admin, and manage who can use the registry.
+section: Running Imagine
+order: 22
+---
+
+Imagine has no passwords. People sign in to the web UI with a code sent by email. New people join by invite.
+
+## Set up email
+
+Imagine sends two kinds of email: sign-in codes and invite links. It picks the first of these that is set:
+
+1. `PLUNK_API_KEY`: Plunk.
+2. `SMTP_URL`: SMTP.
+3. Neither: codes and invite links are written to the server log.
+
+Plunk and SMTP are not combined. If the chosen one fails, Imagine does not try another.
+
+Restart the stack after you change `.env`. Use the same `docker compose … up -d` command you started it with.
+
+### Plunk
+
+```bash
+PLUNK_API_KEY=your-secret-key
+PLUNK_API_URL=https://next-api.useplunk.com
+MAIL_FROM=you@example.com
+```
+
+Imagine posts to `<PLUNK_API_URL>/v1/send`. The URL above is the default. `MAIL_FROM` is required with Plunk, and its domain must be verified there.
+
+### SMTP
+
+```bash
+SMTP_URL=smtps://user:pass@smtp.example.com:465
+MAIL_FROM=you@example.com
+```
+
+`MAIL_FROM` is required with `SMTP_URL`. Use `smtps:` for TLS from the start, usually port 465. For a server that uses STARTTLS, usually port 587, use `smtp:` and add `?requireTLS=true`, for example `smtp://user:pass@smtp.example.com:587?requireTLS=true`. Without it, mail goes out unencrypted if the server does not offer STARTTLS. Percent-encode special characters in the user name and password.
+
+With either service, `MAIL_FROM` must be a plain address, without a display name.
+
+### Server log
+
+Use this for development only: anyone who can read the log can sign in.
+
+```bash
+docker compose logs imagine
+```
+
+### When email fails
+
+- **Sign-in codes** are sent in the background. The page shows **Check your email** even if sending fails. Look for `Failed to run background task:` in the server log.
+- **Invites** are sent before they are saved. If sending fails, the page shows **Couldn't send the invite** or **Couldn't resend the invite**. Nothing is saved, and an earlier invite still works.
+
+## Create the first admin
+
+The first person to sign in on an empty registry becomes admin. There is no admin setting, so sign in before you share the address.
+
+1. Open your `PUBLIC_URL`. The page shows **Set up Imagine**.
+2. Enter your email and click **Send code**.
+3. Enter the 6-digit code from the email, or from the log if email is not set up. Imagine signs you in once all six digits are entered.
+
+## Sign-in codes
+
+A code is valid for 10 minutes and allows three wrong attempts. After that, the next attempt is refused even with the right code. The page then shows **Too many incorrect codes** and disables **Resend code** for 5 minutes. The server does not enforce that wait.
+
+Codes go only to people with an account, people with a pending invite, and whoever sets up an empty registry. The page answers everyone else the same way, so it does not reveal who has an account. If no code arrives, first check that the person has an account or a pending invite.
+
+## Invite people
+
+1. Open **Admin** as an admin.
+2. Under **Invite someone**, enter the email and choose a role.
+3. Click **Send invite**.
+
+The link works for 7 days and for that email address only. The person opens it, clicks **Send code** and enters the code. They can also sign in from the normal sign-in page with the invited address while the invite is pending. Either way, the account gets the invite's role, and the invite is used up.
+
+You cannot invite an address that already has an account.
+
+### Resend or revoke an invite
+
+Use the buttons under **Pending invites**.
+
+| Button | What happens |
+| --- | --- |
+| **Resend** | Sends a new link that works for 7 days. The old link stops working. The role stays the same. |
+| **Revoke** | Asks you to confirm with **Revoke invite**. The link stops working immediately, and the address can no longer create an account. |
+
+To change the role on an invite, revoke it and send a new one. Expired invites leave the list. Invite the person again.
+
+## Roles
+
+| | Member | Admin |
+| --- | --- | --- |
+| See all images in the web UI, private ones included | yes | yes |
+| Create API keys, and push and pull with them | yes | yes |
+| Change an image's visibility | no | yes |
+| Delete images and tags | no | yes |
+| Manage users and invites | no | yes |
+
+Roles apply to the whole registry. There are no per-repository permissions. What a key may do depends on the key, not on its owner's role. See [API keys and CI](/api-keys/).
+
+The invite email calls a Member `user`.
+
+## Change a role
+
+On **Admin**, under **Users**, choose **Member** or **Admin** next to the person. The change saves at once.
+
+A demoted admin loses admin rights right away. They stay signed in, and their API keys keep working.
+
+## Remove a user
+
+1. On **Admin**, under **Users**, click **Remove** next to the person.
+2. Click **Remove user** to confirm.
+
+This has these effects:
+
+- They are signed out on every device.
+- All their API keys are deleted. CI that uses them fails. Registry tokens already issued stop working too.
+- Invites they sent that are still pending are deleted. Send them again if you still want them.
+- Images they pushed stay.
+
+Presigned download URLs they already have work until they expire. See [Storage](/storage/).
+
+A removed person needs a new invite to come back, and new API keys.
+
+### What you cannot do
+
+- Remove yourself. Ask another admin.
+- Remove or demote the last admin. Make someone else admin first.
+
+You can demote yourself when another admin exists. You then lose the **Admin** page at once.
+
+## Rate limits
+
+Limits on `/api/auth` count per client address and per path. An IPv6 client counts as its `/64` network.
+
+| Request | Limit |
+| --- | --- |
+| Request a sign-in code | 3 per 60 seconds |
+| Submit a sign-in code | 10 per 60 seconds |
+
+The count resets once 60 seconds pass without an accepted request.
+
+On the email step, the page shows **Too many attempts** and counts down. On the code step, **Resend code** counts down. Too many code submissions show **Too many incorrect codes**. The server answers 429 with `Retry-After`. The counts live in memory, so a restart clears them.
+
+The limits work only if your proxy passes the real client address. See [TLS proxy](/tls-proxy/).
+
+## Trusted origins
+
+Sign-in works from `PUBLIC_URL`. To allow another origin, such as a development server, list it in `TRUSTED_ORIGINS`, separated by commas. Write scheme, host and port only, with no trailing slash. That origin must itself forward `/api` to Imagine. See [Configuration](/configuration/).

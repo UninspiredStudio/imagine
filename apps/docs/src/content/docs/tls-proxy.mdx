@@ -1,0 +1,87 @@
+---
+title: TLS proxy
+description: Put your own TLS proxy in front of the registry and the bundled S3 store.
+section: Running Imagine
+order: 21
+---
+
+Compose serves plain HTTP on loopback. Your proxy runs on the same host, terminates TLS and forwards to it. Imagine does not include a TLS proxy or certificates.
+
+## Two hosts
+
+| Host | Set by | Forward to |
+| --- | --- | --- |
+| Registry, `registry.example.com` | `PUBLIC_URL` | `127.0.0.1:8080` |
+| S3, `s3.registry.example.com` | `S3_PUBLIC_ENDPOINT` | `127.0.0.1:8333` |
+
+Forward every path on the registry host. The `web` service behind it serves the web UI and passes `/api`, `/v2` and `/token` to Imagine.
+
+You need the S3 entry only with the bundled SeaweedFS. With external S3, your provider serves that host. Clients that pull must reach both hosts. See [Storage](/storage/).
+
+## Required settings
+
+The names below are nginx directives. With another proxy, use its equivalents.
+
+| Setting | Hosts | Why |
+| --- | --- | --- |
+| `client_max_body_size 0` | Registry | nginx's default is 1 MB, and layers are larger. Imagine enforces `MAX_BLOB_BYTES` itself. |
+| `proxy_request_buffering off` | Registry | Sends uploads on as they arrive. With buffering on, nginx reads the whole body first. |
+| `proxy_http_version 1.1` | Registry | Without HTTP/1.1 or HTTP/2 to the upstream, nginx buffers chunked uploads anyway. |
+| `proxy_read_timeout 3600s` and `proxy_send_timeout 3600s` | Registry | The request that finishes a blob sends no bytes while Imagine hashes it and writes it to S3. In testing, nginx's 60-second default returned 504 on a large layer. |
+| `proxy_set_header Host $http_host` | S3 | Presigned URLs are signed over the host. A rewritten `Host` fails with `SignatureDoesNotMatch`. |
+| `proxy_set_header X-Forwarded-For $remote_addr` | Registry | Imagine limits sign-in attempts by client address. See [Client address and rate limits](#client-address-and-rate-limits). |
+| `proxy_buffering off` | S3 | Keeps large downloads from spooling to the proxy's disk. Not tested yet. |
+
+Imagine turns off its own idle timeout on upload requests, so a stalled upload stays open until a proxy timeout ends it. nginx also has `client_body_timeout`, 60 seconds by default, for the client's side of an upload. The `web` service raises its own to 3600 seconds. The example below keeps your proxy's default.
+
+## nginx example
+
+This example has not been run against Imagine's Compose file. Add your certificate and check the configuration before you use it.
+
+```nginx
+# Registry host: web UI, /api, /v2 and /token
+server {
+    listen 443 ssl;
+    server_name registry.example.com;
+    # ssl_certificate and ssl_certificate_key: your certificate
+
+    client_max_body_size 0;
+    proxy_request_buffering off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+
+# S3 host: presigned blob URLs (bundled SeaweedFS only)
+server {
+    listen 443 ssl;
+    server_name s3.registry.example.com;
+    # ssl_certificate and ssl_certificate_key: your certificate
+
+    proxy_buffering off;
+
+    location / {
+        proxy_pass http://127.0.0.1:8333;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+    }
+}
+```
+
+## Client address and rate limits
+
+Imagine reads the client address from `X-Forwarded-For` to rate-limit `/api/auth`. The `web` service passes the header on unchanged, so your proxy must set it to one value: the real client address.
+
+- **Overwrite the header.** Do not use `$proxy_add_x_forwarded_for`. It appends to whatever the client sent, and Imagine ignores a header with more than one address.
+- **Do not leave it out.** Without a usable address, all clients share one limit per path. A few people who request codes at the same time can then block each other.
+- **Do not pass the client's own value on.** A client could change the value to avoid the limits.
+
+If another proxy or CDN sits in front of yours, `$remote_addr` is that proxy's address. Make your proxy resolve the real client address first.
+
+For the limits themselves, see [Email, users and invites](/email-and-users/).

@@ -1,0 +1,110 @@
+---
+title: Storage
+description: Choose the bundled SeaweedFS or external S3, and set the endpoints that pushes and pulls use.
+section: Running Imagine
+order: 20
+---
+
+Imagine keeps image blobs (layers and configs) in an S3 bucket. Use the bundled SeaweedFS, or bring any S3-compatible store.
+
+## What is stored where
+
+| Data | Place |
+| --- | --- |
+| Blobs | S3 bucket, under `blobs/<algorithm>/<hex>` |
+| Manifests, tags, visibility, and which repository uses which blob | Postgres, `postgres-data` volume |
+| Users, sessions, invites and API keys | Postgres, `postgres-data` volume |
+| Uploads in progress | `spool` volume |
+| The bundled SeaweedFS bucket | `seaweed-data` volume |
+
+The same blob is stored once, even when several images use it.
+
+Each blob is written in full to the `spool` volume, hashed, and then written to S3. Give that volume's disk room for all the blobs your clients upload at the same time. One blob can be up to `MAX_BLOB_BYTES`, 16 GiB by default. Interrupted uploads also stay there until the [cleanup sweep](/cleanup/) removes them, after 24 idle hours.
+
+## How pulls work
+
+Imagine serves manifests itself. For a blob, it answers with a 307 redirect to a presigned S3 URL. The client downloads the blob from S3, so the S3 host must be reachable from every machine that pulls.
+
+A presigned URL works for `PRESIGN_TTL_SECONDS`, 900 by default. Anyone who has the URL can download that blob until it expires, even if they lose access to the registry in the meantime.
+
+Pushes do not use presigned URLs. Clients upload to Imagine, and Imagine writes to S3.
+
+## Two endpoints
+
+| Variable | Used for | Who must reach it |
+| --- | --- | --- |
+| `S3_ENDPOINT` | Writes, deletes, and reading image configs for the web UI | The `imagine` container |
+| `S3_PUBLIC_ENDPOINT` | Presigned pull URLs | Everyone who pulls |
+
+Both must lead to the same store. They use the same key pair, `S3_BUCKET` and `S3_REGION`. A presigned URL's signature covers the host, so a proxy must pass the `Host` header on unchanged.
+
+Imagine uses path-style URLs: `https://s3.registry.example.com/imagine/blobs/…`, where `imagine` is the bucket. Leave the bucket name out of both endpoints.
+
+## Use the bundled SeaweedFS
+
+The `seaweedfs` service runs SeaweedFS 4.52 in `mini` mode. It starts only with `--profile s3`, and listens on `127.0.0.1:8333` on the host.
+
+1. Generate a signing key. The service refuses to start without one.
+
+   ```bash
+   openssl rand -hex 32   # SEAWEEDFS_FILER_SIGNING_KEY
+   ```
+
+2. Set these in `.env`. You choose the key pair. SeaweedFS and Imagine share it.
+
+   ```bash
+   AWS_ACCESS_KEY_ID=...
+   AWS_SECRET_ACCESS_KEY=...
+   SEAWEEDFS_FILER_SIGNING_KEY=...
+   S3_ENDPOINT=http://seaweedfs:8333
+   S3_PUBLIC_ENDPOINT=https://s3.registry.example.com
+   ```
+
+3. Add a proxy entry for the S3 host. See [TLS proxy](/tls-proxy/).
+
+4. Start the stack.
+
+   ```bash
+   docker compose --profile s3 up -d --build
+   ```
+
+SeaweedFS creates the bucket named in `S3_BUCKET`.
+
+## Use external S3
+
+1. Create a bucket and a key pair with your provider. Imagine does not create the bucket. The key pair must be able to write, read and delete objects in it.
+
+2. Set these in `.env`, with your provider's values.
+
+   ```bash
+   AWS_ACCESS_KEY_ID=...
+   AWS_SECRET_ACCESS_KEY=...
+   S3_BUCKET=your-bucket
+   S3_REGION=your-region
+   S3_ENDPOINT=https://s3.example.com
+   S3_PUBLIC_ENDPOINT=https://s3.example.com
+   ```
+
+   Change `S3_ENDPOINT`. Its default points at the bundled SeaweedFS. If clients and the server reach your store at the same address, use that address for both endpoints.
+
+3. Start the stack without the profile.
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+The `seaweedfs` service does not start, and you can leave `SEAWEEDFS_FILER_SIGNING_KEY` blank.
+
+## Bucket rules
+
+- **Keep the bucket private.** Pulls use presigned URLs, so clients need no public read access.
+- **Do not expire or delete objects yourself.** Imagine redirects pulls from its database records and does not check that the object is still there. Let the [cleanup sweep](/cleanup/) remove unused blobs.
+- **Back up the bucket and Postgres together.** Neither is complete without the other. See [Backup and upgrade](/backup-and-upgrade/).
+
+## Switch stores
+
+Imagine has no command that moves blobs between stores. Changing the S3 settings does not copy anything, but Postgres still lists the old blobs. Pulls of blobs missing from the new store fail.
+
+## Not tested
+
+Layers over 5 GB from a real Docker client are not tested. A 6 GiB upload through nginx, without a Docker client, was.

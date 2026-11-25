@@ -1,0 +1,208 @@
+---
+title: Backup and upgrade
+description: Which data to back up, how to copy it consistently, and how to move to a newer version.
+section: Running Imagine
+order: 24
+---
+
+## What to back up
+
+| State | Where | Back up? |
+| --- | --- | --- |
+| Image index, manifests, users, API keys, invites | `postgres-data` volume | Yes |
+| Layers and image configs | Your S3 bucket, or the `seaweed-data` volume with the bundled SeaweedFS | Yes |
+| Secrets and settings | `.env`, plus your own Compose override and proxy configuration | Yes, stored securely |
+| Uploads in progress | `spool` volume | No. Clients push again. |
+
+You need both the database and the objects. The bucket alone has no repository names, tags or manifests.
+
+Keep `BETTER_AUTH_SECRET` from `.env`. A new value logs everyone out.
+
+## Why the order matters
+
+The database says which blobs exist, so every blob that a repository links must have its object:
+
+- A push records the blob, writes the object, and links it last. A recorded blob without a link cannot be pulled, and the sweep removes it.
+- The sweep deletes the database row first, and then the object.
+
+So copy the database **first** and the objects **second**. Objects pushed between the two copies are extra, which is harmless. No sweep may run in between, because it could delete an object that the copied database still links.
+
+Stop the `imagine` service for both copies. That stops pushes and scheduled sweeps.
+
+## Make a backup
+
+Pulls, pushes and the web UI are down during these steps. Run them in the checkout.
+
+1. Stop the server and the web service. Postgres keeps running.
+
+   ```bash
+   docker compose stop web imagine
+   ```
+
+2. Dump the database. `-T` keeps the binary output intact.
+
+   ```bash
+   docker compose exec -T postgres pg_dump -U imagine -Fc imagine > imagine.dump
+   ```
+
+   Check that the command succeeded and the file is not empty.
+
+3. Copy the objects.
+
+   - **External S3:** copy the bucket with your provider's tools or a bucket copy. Keep the object keys, for example `blobs/sha256/...`.
+   - **Bundled SeaweedFS:** stop it, then archive its volume. This is not tested. Check the volume name first, and stop if `inspect` fails. Docker creates a volume that does not exist, so a wrong name archives an empty one.
+
+     ```bash
+     docker compose --profile s3 stop seaweedfs
+     docker volume inspect imagine_seaweed-data
+     ```
+
+     ```bash
+     docker run --rm -v imagine_seaweed-data:/data:ro -v "$PWD":/backup alpine tar czf /backup/seaweed-data.tar.gz -C /data .
+     ```
+
+     The volume is `imagine_seaweed-data` because `compose.yaml` sets the project name. Find yours with `docker volume ls`. Check that the command succeeded and that `tar tzf seaweed-data.tar.gz` lists files.
+
+4. Copy `.env`, and note the commit you run (`git rev-parse HEAD`).
+5. Start the stack again.
+
+   Bundled SeaweedFS:
+
+   ```bash
+   docker compose --profile s3 up -d
+   ```
+
+   External S3:
+
+   ```bash
+   docker compose up -d
+   ```
+
+6. Move the three copies off this host, as one backup set, and remove them from the checkout. Store all of them securely: the dump contains live sessions, sign-in codes and email addresses, and the objects include private images.
+
+## Restore
+
+This outline has not been tested. Try it on a spare host before you rely on it. It replaces the whole database.
+
+**Never start a restored copy against the live bucket.** Its sweep deletes objects that the live registry may need. Two Imagine servers with different databases must never share a bucket.
+
+1. Check out the commit you noted, or a newer one, and put `.env` back.
+
+   - **When you replace the original server:** keep the original values.
+   - **On a spare host:** use a different, empty bucket or the bundled SeaweedFS, with credentials that cannot reach the live bucket. Set `S3_BUCKET`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT` and `PUBLIC_URL` for the spare host before you start `imagine`.
+
+2. Stop the services, so no sweep sees a half-restored registry.
+
+   ```bash
+   docker compose --profile s3 stop web imagine seaweedfs
+   ```
+
+3. If the current database still works, dump it to another file first. The next steps replace it.
+
+   ```bash
+   docker compose exec -T postgres pg_dump -U imagine -Fc imagine > before-restore.dump
+   ```
+
+4. Restore the objects.
+
+   **External S3:** copy them into the bucket named in `S3_BUCKET`, with the same keys.
+
+   **Bundled SeaweedFS:** unpack the archive into an empty volume. On a host that already has data, archive the current volume under another name first. Then remove it. This deletes all objects in it:
+
+   ```bash
+   docker compose --profile s3 rm -sf seaweedfs
+   docker volume rm imagine_seaweed-data
+   ```
+
+   Create the empty volume, without starting the service, and check its name. If `inspect` fails, stop: the next command would fill a volume that nothing uses.
+
+   ```bash
+   docker compose --profile s3 create seaweedfs
+   docker volume inspect imagine_seaweed-data
+   ```
+
+   Unpack the archive.
+
+   ```bash
+   docker run --rm -v imagine_seaweed-data:/data -v "$PWD":/backup:ro alpine tar xzf /backup/seaweed-data.tar.gz -C /data
+   ```
+
+5. Start Postgres, then restore the dump. `--clean --create` drops and recreates the `imagine` database.
+
+   ```bash
+   docker compose up -d --wait postgres
+   docker compose exec -T postgres pg_restore -U imagine -d postgres --clean --if-exists --create --exit-on-error < imagine.dump
+   ```
+
+   Go on only when `pg_restore` exits with 0. If it fails, do not start `imagine`. Fix the cause and run it again.
+
+6. Start everything.
+
+   Bundled SeaweedFS:
+
+   ```bash
+   docker compose --profile s3 up -d --build
+   ```
+
+   External S3:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+7. Pull an image to check it, with its layers removed from your machine first. Check that the layer redirect goes to the restored store. See [Troubleshooting](/troubleshooting/). With the original `PUBLIC_URL` or `S3_PUBLIC_ENDPOINT` on a spare host, the pull can use the original registry or store, and pass although nothing was restored.
+
+After a restore:
+
+- Everything since the backup is undone. Pushes, new users and new keys are lost. API keys you revoked, users you removed and images you deleted come back, and visibility changes revert. Check users, keys and public images.
+- On a new host, uploads that were in progress at the backup are gone. A sweep removes their rows once they are more than 24 hours old, counted from their creation.
+- Objects newer than the database copy stay in the bucket, and the sweep does not find them. Uploading the same layer again brings it back into the index.
+- If the database links a blob whose object is missing, pulls of it fail at the S3 store. Pushing to the same repository does not help, because the registry answers that the layer exists. Restore the missing object. Otherwise, delete the image in the web UI and push it again. Another image that uses the layer recovers only when the object is written again, and mounting the layer does not write it.
+
+## Upgrade
+
+You build Imagine from a checkout.
+
+1. Make a backup. Note that its step 5 starts the registry again: to go back later, you lose everything pushed or changed after the backup.
+2. Get the new code. Then compare `.env.example` with your `.env` for new variables.
+
+   ```bash
+   git pull
+   ```
+
+   Check `git diff ORIG_HEAD HEAD -- compose.yaml` for changes to the `postgres` or `seaweedfs` image, the volumes or the project name. Do not upgrade to another Postgres major version: no data migration between major versions is included. Never use `docker compose down -v`, which deletes the volumes.
+
+3. Rebuild and recreate the containers.
+
+   Bundled SeaweedFS:
+
+   ```bash
+   docker compose --profile s3 up -d --build
+   ```
+
+   External S3:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. Check the result.
+
+   ```bash
+   docker compose ps
+   docker compose logs imagine
+   ```
+
+   The log shows `imagine listening on :8080` once the server is ready.
+
+### Migrations
+
+`imagine` applies new database migrations each time it starts, before it listens. The migrations of one start run in one transaction, so if one fails, none of them is kept. The server then exits, and Compose starts it again. Read the log for the error.
+
+### Downtime
+
+Run one `imagine` replica, so an upgrade means a short outage while its container is replaced. Requests in progress are cut off. Uploads spool to the `spool` volume, so a client can continue an upload if it supports that. Otherwise, push again.
+
+### Downgrade
+
+Downgrades are not supported. The migrations only go forward, and an older version does not undo them. To go back, restore the backup you made before the upgrade and check out its commit. Anything pushed or changed after that backup is lost.

@@ -1,0 +1,160 @@
+---
+title: Configuration
+description: Every variable Imagine reads, what it accepts, and what changes when you change it.
+section: Reference
+order: 30
+---
+
+Copy `.env.example` to `.env` next to `compose.yaml` and fill it in. Compose reads `.env` and passes the values to the containers.
+
+The server checks most values when it starts. If one is invalid, it prints the error and exits. Compose then restarts it again and again, and `web` waits for it to become healthy. Read the error in the log:
+
+```bash
+docker compose logs imagine
+```
+
+In the tables, "Compose" checks stop `docker compose` itself. "Server" checks run when the `imagine` container starts.
+
+## Public address and sign-in
+
+| Variable | Required | Default | Checks | What it does |
+| --- | --- | --- | --- | --- |
+| `PUBLIC_URL` | yes | none | Compose: not blank. Server: a URL. | The address people use, with the scheme, for example `https://registry.example.com`. Imagine uses it for sign-in, `Location` headers, the token address that Docker calls, invite links and the host name in the web UI. |
+| `BETTER_AUTH_SECRET` | yes | none | Compose: not blank. Server: at least 32 characters. | Signs sessions and registry tokens. Generate it with `openssl rand -hex 32`. |
+| `TRUSTED_ORIGINS` | no | blank | none | Extra origins allowed to sign in, separated by commas. Spaces and empty entries are dropped. Most installs leave it blank. |
+
+Always write the scheme in `PUBLIC_URL`. `registry.example.com` is refused, but `registry.example.com:8080` passes the URL check and is wrong: the part before the colon is read as the scheme. Do not add a path, because the registry API is served at `/v2/` on the host.
+
+No variable names the admin. See [Email, users and invites](/email-and-users/).
+
+## Database
+
+| Variable | Required | Default | Checks | What it does |
+| --- | --- | --- | --- | --- |
+| `POSTGRES_PASSWORD` | yes | none | Compose: not blank. | Password of the `imagine` database user. Compose puts it into a URL unescaped, so use hex only: `openssl rand -hex 24`. |
+
+## Storage
+
+See [Storage](/storage/) for setup.
+
+| Variable | Required | Default | Checks | What it does |
+| --- | --- | --- | --- | --- |
+| `AWS_ACCESS_KEY_ID` | yes | none | Compose and server: not blank. | S3 access key. The bundled SeaweedFS gets the same key. |
+| `AWS_SECRET_ACCESS_KEY` | yes | none | Compose and server: not blank. | S3 secret key. The bundled SeaweedFS gets the same key. |
+| `S3_PUBLIC_ENDPOINT` | yes | none | Compose: not blank. Server: a URL. | Public S3 address. Blob downloads redirect here, so clients must be able to reach it. |
+| `S3_ENDPOINT` | with external S3 | `http://seaweedfs:8333` | Server: a URL. | S3 address the server itself uses. The default is the bundled SeaweedFS. |
+| `S3_BUCKET` | no | `imagine` | Server: not blank. | Bucket for image blobs. |
+| `S3_REGION` | no | `us-east-1` | Server: not blank. | Region used to sign S3 requests. |
+| `SEAWEEDFS_FILER_SIGNING_KEY` | with `--profile s3` | none | SeaweedFS container: not blank. | Signs calls to the SeaweedFS filer. Generate it with `openssl rand -hex 32`. External S3 does not need it. |
+
+If `SEAWEEDFS_FILER_SIGNING_KEY` is blank, only the `seaweedfs` container fails, with `SEAWEEDFS_FILER_SIGNING_KEY must be set for the s3 profile` in its log.
+
+As with `PUBLIC_URL`, write the scheme in both endpoint URLs.
+
+## Mail
+
+See [Email, users and invites](/email-and-users/) for setup.
+
+| Variable | Required | Default | Checks | What it does |
+| --- | --- | --- | --- | --- |
+| `PLUNK_API_KEY` | no | blank | none | Sends mail through Plunk when set. Plunk wins over SMTP. |
+| `PLUNK_API_URL` | no | `https://next-api.useplunk.com` | Server: a URL. | Plunk address. Imagine adds `/v1/send`. |
+| `SMTP_URL` | no | blank | Server: a URL, or blank. | SMTP connection URL, for example `smtps://user:pass@smtp.example.com:465`. |
+| `MAIL_FROM` | with `PLUNK_API_KEY` or `SMTP_URL` | blank | Server: a plain email address, or blank. Must be set when `PLUNK_API_KEY` or `SMTP_URL` is set. | Sender address, for SMTP and Plunk. `you@example.com` works. `Imagine <you@example.com>` is refused. |
+
+With neither `PLUNK_API_KEY` nor `SMTP_URL`, sign-in codes and invite links go to the server log. Use that for development only.
+
+## Limits and cleanup
+
+| Variable | Required | Default | Checks | What it does |
+| --- | --- | --- | --- | --- |
+| `MAX_BLOB_BYTES` | no | `17179869184` (16 GiB) | Server: a whole number above 0. | Largest single blob, in bytes. Bytes already uploaded count. Units such as `16GB` are refused. |
+| `PRESIGN_TTL_SECONDS` | no | `900` | Server: a whole number above 0. | How long a blob download URL stays valid, in seconds. Imagine sets no maximum, but Amazon S3 allows at most 604800 (7 days). |
+| `SWEEP_SCHEDULE` | no | `0 * * * *` | Server: a cron schedule that Bun accepts. A six-field schedule is refused. | When the [cleanup sweep](/cleanup/) runs. Quote it in `.env`. |
+
+Compose does not pass `TZ` to the container, so a `TZ` line in `.env` has no effect on the schedule.
+
+## Fixed by Compose
+
+These are set in `compose.yaml`, in the Dockerfile or by a default in the server. Compose does not read them from `.env`, so adding them there has no effect.
+
+| Variable | Service | Value | What it does |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | `imagine` | `postgres://imagine:` + `POSTGRES_PASSWORD` + `@postgres:5432/imagine` | Database connection. The server only checks that it is not blank. |
+| `SPOOL_DIR` | `imagine` | `/spool` | Directory for uploads in progress, on the `spool` volume. |
+| `PORT` | `imagine` | not set, so `8080` | Port the server listens on. nginx forwards to `imagine:8080`, so leave it. |
+| `NODE_ENV` | `imagine` | `production` | Set in the Dockerfile. |
+| `POSTGRES_DB` | `postgres` | `imagine` | Database name. |
+| `POSTGRES_USER` | `postgres` | `imagine` | Database user. |
+| `WEED_JWT_FILER_SIGNING_KEY` | `seaweedfs` | `SEAWEEDFS_FILER_SIGNING_KEY` | SeaweedFS's own name for the key. |
+
+The published ports, `127.0.0.1:8080` and `127.0.0.1:8333`, are also fixed in `compose.yaml`.
+
+## Blank values
+
+In `.env`, a blank value such as `S3_REGION=` counts as unset:
+
+- **Required variable:** Compose refuses to start and prints, for example, `set PUBLIC_URL in .env`.
+- **Variable with a default:** the default applies.
+- **`TRUSTED_ORIGINS`, `PLUNK_API_KEY` and `SMTP_URL`:** the feature is off.
+- **`MAIL_FROM`:** the server refuses to start if `PLUNK_API_KEY` or `SMTP_URL` is set.
+- **`SEAWEEDFS_FILER_SIGNING_KEY`:** fine with external S3. With `--profile s3`, `seaweedfs` does not start.
+
+Defaults for blank values come from Compose. If you run the server without Compose, leave such variables out: a blank `S3_REGION`, `PLUNK_API_URL`, `MAX_BLOB_BYTES`, `PRESIGN_TTL_SECONDS` or `SWEEP_SCHEDULE` is refused. Set `DATABASE_URL`, `S3_BUCKET` and `S3_ENDPOINT` yourself: only Compose sets or defaults them.
+
+## Quoting
+
+- A variable set in your shell wins over `.env`. `docker compose config --environment` shows the values Compose uses.
+- Compose expands `$` in unquoted and double-quoted values. Put a value with a `$` in single quotes.
+- In an unquoted value, a space followed by `#` starts a comment.
+
+## Change a value
+
+1. Edit `.env`.
+2. Apply it. Compose recreates the containers whose settings changed.
+
+   Bundled SeaweedFS:
+
+   ```bash
+   docker compose --profile s3 up -d
+   ```
+
+   External S3:
+
+   ```bash
+   docker compose up -d
+   ```
+
+`docker compose restart` does not apply changes to variables. No variable needs an image rebuild.
+
+Restarting `imagine` interrupts requests in progress. Uploads in progress stay on the `spool` volume. Back up before you change database or storage values. See [Backup and upgrade](/backup-and-upgrade/).
+
+| Variable | What a change breaks or needs |
+| --- | --- |
+| `PUBLIC_URL` | Update your [TLS proxy](/tls-proxy/). For a new host, everyone signs in to the web UI again, runs `docker login` for the new host and uses new image names. Invite links already sent keep the old address. |
+| `BETTER_AUTH_SECRET` | Everyone is signed out of the web UI, and registry tokens already issued stop working. API keys and pending invites keep working. |
+| `TRUSTED_ORIGINS` | Removed origins can no longer sign in. |
+| `POSTGRES_PASSWORD` | Editing `.env` is not enough. Postgres uses this variable only when it creates an empty database. See below. |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | The new pair must be accepted by your store. Download URLs signed with the old pair stop working if the store revokes it. |
+| `S3_ENDPOINT`, `S3_BUCKET` | Imagine does not move blobs. Copy every object to the new store or bucket first, or pulls of existing images fail. |
+| `S3_PUBLIC_ENDPOINT` | Only new download URLs use it. It must serve the same bucket as `S3_ENDPOINT`. Update your TLS proxy if you use the bundled SeaweedFS. |
+| `S3_REGION` | Must match what your store expects. |
+| `PLUNK_API_KEY`, `PLUNK_API_URL`, `SMTP_URL`, `MAIL_FROM` | Applies to mail sent from then on. |
+| `MAX_BLOB_BYTES` | Applies to bytes received from then on. Stored blobs above a lower limit stay and can still be pulled. |
+| `PRESIGN_TTL_SECONDS` | Applies to new download URLs. |
+| `SWEEP_SCHEDULE` | Applies from the restart. |
+
+Rotating `SEAWEEDFS_FILER_SIGNING_KEY`, or the S3 key pair of an existing bundled SeaweedFS store, is not tested.
+
+### Change the database password
+
+1. Set the new password in the running database. The command asks for it twice.
+
+   ```bash
+   docker compose exec postgres psql -U imagine -d imagine -c '\password'
+   ```
+
+2. Put the same password in `POSTGRES_PASSWORD` in `.env`.
+3. Apply it with the `up` command above.
+
+Between steps 1 and 3 the server cannot open new database connections, so do them right after each other.

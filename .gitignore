@@ -26,6 +26,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .eslintcache
 .cache
 .tanstack
+.astro
+.wrangler
+
+# backups made in the checkout (see the Backup and upgrade docs)
+*.dump
+seaweed-data*.tar.gz
 *.tsbuildinfo
 
 # IntelliJ based IDEs

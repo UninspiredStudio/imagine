@@ -1,0 +1,118 @@
+---
+title: Troubleshooting
+description: Symptoms, causes and fixes for startup, sign-in, push, pull and storage problems.
+section: Running Imagine
+order: 25
+---
+
+Start with the state and the logs of the services:
+
+```bash
+docker compose ps -a
+docker compose logs imagine web postgres
+docker compose --profile s3 logs seaweedfs   # bundled SeaweedFS only
+```
+
+## The stack does not start
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Compose stops with `set POSTGRES_PASSWORD in .env` (or another name) | A required value is blank. | Set it in `.env`. This also applies to AWS keys and `S3_PUBLIC_ENDPOINT` with external S3. |
+| `imagine` restarts, and the log names a variable such as `BETTER_AUTH_SECRET` or `PUBLIC_URL` | The value is not valid. The secret needs at least 32 characters. `PUBLIC_URL` and the S3 endpoints must be full URLs with a scheme. Number values must be positive whole numbers. | Fix the value. See [Configuration](/configuration/). |
+| `MAIL_FROM is required when PLUNK_API_KEY or SMTP_URL is set` | The mail service has no sender. | Set `MAIL_FROM` to an email address. |
+| `imagine` restarts with an invalid URL or database connection error | `POSTGRES_PASSWORD` goes into a URL. Characters such as `@ : / ? # %` break it. | Use hex only, and see the next row if the database already exists. |
+| Database authentication fails after you changed `POSTGRES_PASSWORD` | Postgres uses this value only to create an empty data directory. The old password still applies. | Put the old value back, or [change the password in Postgres](#change-the-database-password). |
+| `imagine` restarts with an error about the schedule | `SWEEP_SCHEDULE` is invalid or never matches a date. | Use a valid five-field cron schedule. |
+| `imagine` restarts with a migration error | A migration failed. | Read the log. See [Backup and upgrade](/backup-and-upgrade/) before you go back to an older version. |
+| `web` does not start | It waits until `imagine` is healthy. | Fix `imagine` first. |
+| `SEAWEEDFS_FILER_SIGNING_KEY must be set for the s3 profile` | The bundled SeaweedFS refuses to run without this key. | Set it to the output of `openssl rand -hex 32`. External S3 does not need it. |
+
+### Change the database password
+
+Open a prompt in the Postgres container, type `\password imagine`, and enter the value from `.env`. Then recreate `imagine`.
+
+```bash
+docker compose exec postgres psql -U imagine imagine
+docker compose up -d --force-recreate imagine
+```
+
+## Sign-in
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| No code arrives | The address has no account and no pending invite, or the account is banned. The page shows **Check your email** either way. | An admin checks the address and sends an invite. See [Email, users and invites](/email-and-users/). |
+| No code arrives for a valid account, and the log shows `Failed to run background task:` | The mail provider refused the message or could not be reached. | Read the error after that text. Check the mail settings. |
+| No code arrives and mail is not configured | Without `PLUNK_API_KEY` or `SMTP_URL`, codes go to the log. | Read the code with `docker compose logs imagine`, or set up mail. |
+| **We couldn't send the code**, and the log shows `Invalid origin:` | You opened the site at an address other than `PUBLIC_URL`. | Open the `PUBLIC_URL` address, or add the origin to `TRUSTED_ORIGINS`. |
+| **This code has expired** | Codes work for 10 minutes. | Choose **Send a new code**. |
+| **Too many incorrect codes** | Three wrong codes use up a code, or there were too many sign-in attempts from your address. | Wait for the countdown, then choose **Resend code**. |
+| **Too many attempts** | More than 3 code requests from one client address without a 60-second pause between accepted requests. | Wait for the countdown. |
+| Many people see **Too many attempts** at once | The server cannot read the client address, so everyone shares one limit. The log says `Rate limiting could not determine a client IP`. This happens when the proxy sends no `X-Forwarded-For`, or one with several addresses. | Set `X-Forwarded-For $remote_addr` in your proxy. See [TLS proxy](/tls-proxy/). |
+| **This invite link no longer works** | The link is older than 7 days, was used, revoked or replaced by a newer invite, or the admin who sent it was removed. | An admin sends a new invite. |
+| **Couldn't send the invite** or **Couldn't resend the invite**, with `could not send the invite email` | The mail provider refused it. Nothing new was saved, and an earlier invite still works. | Fix the mail settings and send it again. |
+| `<email>` **already has an account.** | The person already has an account. | They sign in without an invite. |
+| Everyone is signed out | `BETTER_AUTH_SECRET` changed. | Put the old value back, or sign in again. |
+
+## Login and push are refused
+
+The registry answers 401 for both missing and insufficient access. Docker may show this as `unauthorized` or `denied`.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `docker login` fails, or the registry says `credentials are not valid` | The password is not a working API key: it was mistyped, revoked or has expired, or its owner was banned or removed. The email address and sign-in code do not work here. | Create a key and use it as the password. The username is ignored. See [API keys and CI](/api-keys/). |
+| `authentication required` | The request carried no token, or a credential that is no longer valid. | Run `docker login registry.example.com`, with the host in the image name. |
+| Pulls work and pushes are refused with `insufficient scope` | You are not logged in (public image), or the key has the **Read** scope. | Log in to the host with a **Read & write** key. |
+| A pull without login is refused with `insufficient scope` | The repository is private or does not exist. Both give the same answer. | Log in, or ask an admin to change its visibility. See [Browse and manage images](/manage-images/). |
+| Docker contacts the wrong host or scheme during login or push | The token and upload addresses are built from `PUBLIC_URL`. | Set `PUBLIC_URL` to the address clients use and recreate `imagine`. |
+| `invalid repository name` | The name breaks the naming rules, for example with uppercase letters. | Use a lowercase name such as `team/app`. |
+| `DELETE` gives 405, or 401 without push access | The registry does not support it. | Delete in the web UI. See [Registry compatibility](/registry-compatibility/). |
+
+## Pushes fail
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| 413 with `blob exceeds ... bytes` | A layer is larger than `MAX_BLOB_BYTES`. | Make the layer smaller, or raise the limit. |
+| 413 with `manifest exceeds 4194304 bytes` or `request body exceeds 4194304 bytes` | The manifest is larger than 4 MiB. The limit is fixed. | Reduce the manifest. |
+| 413 without one of these messages | Your TLS proxy limits the body size. | Set `client_max_body_size 0` on the registry host. See [TLS proxy](/tls-proxy/). |
+| 504 near the end of a large layer | The last request sends no bytes while the server hashes the layer and writes it to S3. nginx's 60-second default is too short. | Set the read and send timeouts to `3600s`. See [TLS proxy](/tls-proxy/). |
+| 500 with `upload could not be written` | The server could not write to the spool, for example because the disk is full. | Free disk space on the `spool` volume's host and push again. |
+| 500 with `internal error` | An unexpected error, for example the S3 write failed. | Read the `imagine` log. Then check the bucket, credentials, region and `S3_ENDPOINT`. With external S3, `S3_ENDPOINT` must not be the default `http://seaweedfs:8333`, and the bucket must exist. See [Storage](/storage/). |
+| 404 with `blob upload unknown to registry` | The upload was swept after 24 idle hours, its image was deleted, or its spool file is gone. With several `imagine` replicas, another replica has the file. | Push again. Run one replica. |
+| 409 with `another request is still writing this upload` | Two requests write the same upload. | Wait for the first one to end, then retry. |
+| 400 with `upload body was interrupted` | The connection broke during the upload. | Retry. Check the network and proxy timeouts. |
+| 400 with `digest mismatch` | The received bytes do not match the digest. | Push again. |
+| 400 with `unknown blobs` | The manifest names a layer or config that this repository does not have, or that a sweep removed during the push. | Push the image again, with all its layers. |
+| 400 with `unknown manifests` | A multi-platform index names a manifest that this repository does not have. | Push the platform images first, then the index. |
+
+## Pulls fail at the redirect
+
+The registry answers a layer request with a redirect to a signed URL at `S3_PUBLIC_ENDPOINT`. If manifests load but layers fail, look at that host.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| The client cannot resolve or reach the S3 host | `S3_PUBLIC_ENDPOINT` is wrong, internal or not served by your proxy. | Set it to an address clients can reach, and recreate `imagine`. |
+| `SignatureDoesNotMatch` | The signature covers the host, and the proxy changed the `Host` header. | Set `proxy_set_header Host $http_host` on the S3 host. See [TLS proxy](/tls-proxy/). |
+| The S3 host refuses a URL that worked earlier | Signed URLs expire after `PRESIGN_TTL_SECONDS`, 900 by default. | Pull again to get a new URL. |
+| The S3 store says the object does not exist | The database lists a blob that the bucket does not have, for example after copies from different times were restored, or after `S3_BUCKET` changed. | Point `S3_BUCKET` at the right bucket, but never at one that another Imagine server with a different database uses, or restore the missing objects. See [Backup and upgrade](/backup-and-upgrade/). |
+
+To see the redirect without following it, request a layer of a public image. A correct setup answers 307 with your S3 host in `Location`:
+
+```bash
+TOKEN=$(curl -s "https://registry.example.com/token?scope=repository:team/app:pull" | jq -r .token)
+curl -s -o /dev/null -D - -H "Authorization: Bearer $TOKEN" "https://registry.example.com/v2/team/app/blobs/<digest>"
+```
+
+Replace `<digest>` with a layer digest from the image's manifest. The `Location` value gives temporary access to the layer, so do not post it publicly.
+
+## Storage does not go down
+
+| Cause | Fix |
+| --- | --- |
+| Only a tag was deleted or moved. The old manifest keeps its layers. | Delete the whole image. |
+| The blobs are less than 24 hours old, or were uploaded or mounted again. | Wait for a sweep after that time. |
+| Another image uses the same layers. | Delete that image too, if you no longer need it. |
+| The sweep reports `failures` above 0. | Read the `sweep: ... failed` lines in the log. Check that the S3 credentials may delete objects. |
+| The sweep has not run. | Check `SWEEP_SCHEDULE`, or [run a sweep now](/cleanup/). |
+| An object has no database row, for example after a sweep was killed or an older database was restored. | The sweep does not find these objects. |
+
+Finished uploads leave no spool file. Others are removed by the first sweep more than 24 hours after their last write. See [Cleanup and storage use](/cleanup/).

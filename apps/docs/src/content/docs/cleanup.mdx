@@ -1,0 +1,84 @@
+---
+title: Cleanup and storage use
+description: What the cleanup sweep removes, when it runs, and how to free storage.
+section: Running Imagine
+order: 23
+---
+
+Deleting an image in the web UI removes it from the index. It does not delete layers from your S3 store. The cleanup sweep does that later, inside the `imagine` service.
+
+## What a sweep removes
+
+| Item | Removed when |
+| --- | --- |
+| Uploads in progress, with their spool files | Nothing was written for more than 24 hours. |
+| Spool files without an upload in the database | Nothing was written to the file for more than 24 hours. |
+| Blobs (layers and image configs) | No manifest in any repository references them, and they are more than 24 hours old. |
+
+Uploading a blob again, or mounting it into another repository, starts a new 24 hours. A push that finds the layer already in the repository uploads nothing and does not.
+
+An upload with no spool file counts from the time it was created. If a client resumes an upload after 24 idle hours, it may have to start that upload again.
+
+## What a sweep keeps
+
+- Every manifest, tagged or not, and every blob a manifest references. A nondistributable layer uploaded after its manifest is kept only if you push the manifest again.
+- Files in the spool whose names are not upload IDs.
+- Objects in the bucket that have no row in the database. The sweep reads the database for blobs. It does not list the bucket.
+
+## Schedule and time zone
+
+The sweep runs on `SWEEP_SCHEDULE`, a five-field cron schedule. The default is `0 * * * *`, at the start of every hour. To run it once a day at 03:00, set this in `.env`:
+
+```bash
+SWEEP_SCHEDULE="0 3 * * *"
+```
+
+Then recreate the container:
+
+```bash
+docker compose up -d imagine
+```
+
+The schedule uses the container's time zone. Imagine sets none, so it is UTC. `TZ` in `.env` has no effect, because `compose.yaml` does not pass it to the container.
+
+Scheduled runs never overlap. The next run is scheduled after the current one ends. An invalid schedule stops the server from starting.
+
+## Run a sweep now
+
+```bash
+docker compose exec imagine bun run apps/server/src/index.ts --sweep
+```
+
+It prints one line:
+
+```text
+sweep: uploads=0 spoolFiles=0 blobs=0 failures=0
+```
+
+The exit code is 0 when the run finished with no failures, and nonzero otherwise. A manual sweep follows the same 24-hour rules. There is no option to skip them.
+
+To see earlier results:
+
+```bash
+docker compose logs imagine
+```
+
+## Free storage
+
+1. Find the images you no longer need. Deleting one removes all its tags and manifests. See [Browse and manage images](/manage-images/).
+2. Delete the whole image. This also ends its uploads in progress.
+3. Wait until the blobs are more than 24 hours old, or were already. The next sweep removes the ones no other image references.
+
+Deleting a tag frees nothing. Its manifest stays and keeps its blobs until you delete the whole image. Moving a tag to a new image works the same way: the old manifest stays.
+
+Layers shared with another image stay as long as that image has a manifest that references them.
+
+## When something fails
+
+| Failure | What happens |
+| --- | --- |
+| One upload, spool file or blob fails | The sweep logs `sweep: <item> failed`, counts it and moves on. |
+| S3 refuses a delete | The blob goes back into the index, unreadable to clients, and the next sweep retries it. If putting it back also fails, the object stays without a row, as in the last line. |
+| The object is already gone | It counts as removed. |
+| The whole run fails, for example because the database is down | The sweep logs `sweep: run failed`. The server keeps running and the next scheduled run tries again. |
+| The server is killed after it removed the row and before the S3 delete finished | One object can stay in the bucket without a database row. No later sweep finds it. Pushing the same blob again brings it back into the index. |

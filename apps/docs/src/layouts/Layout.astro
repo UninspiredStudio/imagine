@@ -1,0 +1,61 @@
+---
+import Brand from "../components/Brand.astro";
+import Nav from "../components/Nav.astro";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title.startsWith("Imagine") ? title : `${title} – Imagine docs`}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <!-- As in the web app: navigation on the page background, beside an inset panel. Mobile gets a top bar. -->
+  <body class="flex min-h-screen items-stretch bg-page-background mobile:flex-col">
+    <a
+      href="#content"
+      class="sr-only z-20 rounded-md bg-brand-600 text-body-bold font-body-bold text-white focus:not-sr-only focus:px-3 focus:py-2 focus:fixed focus:left-2 focus:top-2"
+    >
+      Skip to content
+    </a>
+    <header
+      class="sticky top-0 z-10 hidden border-b border-solid border-neutral-border bg-default-background mobile:block"
+    >
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+          <span class="text-body-bold font-body-bold text-default-font">Imagine docs</span>
+          <span class="rounded-md border border-solid border-neutral-border px-3 py-1.5 text-body-bold font-body-bold text-secondary-font group-open:bg-neutral-200">
+            Menu
+          </span>
+        </summary>
+        <div class="max-h-[70vh] overflow-y-auto border-t border-solid border-neutral-border px-2 py-3"><Nav /></div>
+      </details>
+    </header>
+    <aside class="sticky top-0 flex h-screen w-60 flex-none flex-col gap-6 overflow-y-auto px-3 py-5 mobile:hidden">
+      <div class="px-3"><Brand /></div>
+      <Nav />
+    </aside>
+    <div class="flex min-w-0 grow flex-col py-2 pr-2 mobile:p-0">
+      <main
+        id="content"
+        class="flex w-full grow justify-center gap-12 rounded-lg border border-solid border-neutral-border bg-default-background px-8 pb-12 pt-10 shadow-sm mobile:rounded-none mobile:border-none mobile:px-4 mobile:py-6 mobile:shadow-none"
+      >
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

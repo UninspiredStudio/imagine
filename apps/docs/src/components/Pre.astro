@@ -1,0 +1,8 @@
+---
+import { CopyCode } from "./CopyCode";
+---
+
+<div class="relative" data-code>
+  <pre {...Astro.props}><slot /></pre>
+  <div class="absolute right-1.5 top-1.5 rounded-md bg-neutral-50"><CopyCode client:visible /></div>
+</div>

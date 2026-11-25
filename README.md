@@ -8,7 +8,7 @@ Push and pull work with a real Docker client. For what has not been tested, see 
 
 Not built yet:
 
-- The registry `DELETE` API. The registry answers `DELETE` on manifests, blobs and tags with 405. Admins delete images and tags in the web UI instead.
+- The registry `DELETE` API. The registry answers `DELETE` on manifests and blobs with 405, or with 401 if the caller has no push access. Admins delete images and tags in the web UI instead.
 - The referrers API.
 - Paging and search in the REST API. See `docs/frontend-views.md`.
 
@@ -66,10 +66,10 @@ Compose reads these from `.env`. It sets `DATABASE_URL` and `SPOOL_DIR` for you.
 | `S3_BUCKET` | no | `imagine` | Bucket name. The bundled SeaweedFS creates it. For external S3, create it yourself. |
 | `S3_REGION` | no | `us-east-1` | S3 region. |
 | `TRUSTED_ORIGINS` | no | blank | Extra origins allowed to sign in, comma-separated. For example, the Vite dev server. |
-| `PLUNK_API_KEY` | no | blank | Sends mail through Plunk when set. Plunk wins over SMTP. |
-| `PLUNK_API_URL` | no | `https://api.useplunk.com` | Plunk API URL. |
+| `PLUNK_API_KEY` | no | blank | Sends mail through Plunk when set. Plunk wins over SMTP. Needs `MAIL_FROM`. |
+| `PLUNK_API_URL` | no | `https://next-api.useplunk.com` | Plunk API URL. |
 | `SMTP_URL` | no | blank | Sends mail through SMTP, for example `smtps://user:pass@smtp.example.com:465`. Needs `MAIL_FROM`. |
-| `MAIL_FROM` | with `SMTP_URL` | blank | Sender address. Set it with Plunk too. |
+| `MAIL_FROM` | with `PLUNK_API_KEY` or `SMTP_URL` | blank | Sender address, without a display name. With Plunk, its domain must be verified. |
 | `MAX_BLOB_BYTES` | no | `17179869184` (16 GiB) | Largest blob. Counts bytes already uploaded. |
 | `PRESIGN_TTL_SECONDS` | no | `900` | Lifetime of presigned blob URLs, in seconds. |
 | `SWEEP_SCHEDULE` | no | `0 * * * *` | Five-field cron schedule for the cleanup sweep. Hourly by default. |
@@ -85,7 +85,7 @@ Two hosts need a proxy entry:
 - **Registry host** (the host in `PUBLIC_URL`): forward everything to `127.0.0.1:8080`.
 - **S3 host** (the host in `S3_PUBLIC_ENDPOINT`): forward to `127.0.0.1:8333`. This applies only when you use the bundled SeaweedFS. With external S3, your provider serves this host, and clients must still reach it.
 
-Both hosts need these settings:
+The registry host needs these settings:
 
 - `client_max_body_size 0` and `proxy_request_buffering off`. The app enforces `MAX_BLOB_BYTES` itself.
 - `proxy_read_timeout` and `proxy_send_timeout` of `3600s`. The final blob PUT sends no bytes while it hashes and writes to S3. In testing, nginx's 60-second default returned 504 on a large layer.
@@ -93,7 +93,7 @@ Both hosts need these settings:
 
 The timeouts also bound stalled uploads. Imagine turns off its own idle timeout on upload requests, so a stalled `PATCH` stays open until the proxy's timeout.
 
-The S3 host also needs:
+The S3 host needs:
 
 - `proxy_set_header Host $http_host`. Presigned URLs are signed over the host. A rewritten `Host` fails with `SignatureDoesNotMatch`.
 - `proxy_buffering off`, so large downloads do not spool to the proxy's disk. This is not tested yet.
@@ -126,17 +126,12 @@ server {
     server_name s3.registry.example.com;
     # ssl_certificate and ssl_certificate_key: your certificate
 
-    client_max_body_size 0;
-    proxy_request_buffering off;
     proxy_buffering off;
-    proxy_read_timeout 3600s;
-    proxy_send_timeout 3600s;
 
     location / {
         proxy_pass http://127.0.0.1:8333;
         proxy_http_version 1.1;
         proxy_set_header Host $http_host;
-        proxy_set_header X-Forwarded-For $remote_addr;
     }
 }
 ```
@@ -165,7 +160,7 @@ New repositories are private. Pulls from a private repository need a key. Anyone
 
 ## Cleanup
 
-The `imagine` service runs a sweep on `SWEEP_SCHEDULE`. Bun reads the schedule in the local time zone of the container. This project sets no time zone for it, so that is UTC unless you set `TZ`.
+The `imagine` service runs a sweep on `SWEEP_SCHEDULE`. Bun reads the schedule in the local time zone of the container. This project sets no time zone for it, so that is UTC. `compose.yaml` does not pass `TZ` on, so setting it in `.env` has no effect.
 
 Each sweep removes:
 
@@ -212,6 +207,24 @@ Run each suite separately, with its own database:
 ```bash
 TEST_DATABASE_URL=postgres://user:pass@localhost:5432/imagine_sweep bun test apps/server/src/sweep.test.ts
 ```
+
+### Docs site
+
+`apps/docs` is an Astro site that deploys to Cloudflare Workers as static assets. Pages are MDX files in `apps/docs/src/content/docs`. Their path is their URL, and their frontmatter (`title`, `description`, `section`, `order`) builds the sidebar. Pages can import Subframe components. To pass JSX in a prop, wrap the component in a `.tsx` file first, because MDX cannot.
+
+```bash
+bun run --filter @imagine/docs dev
+bun run --filter @imagine/docs check
+bun run --filter @imagine/docs build
+bun run --filter @imagine/docs preview   # serves the build with wrangler
+```
+
+`apps/docs/wrangler.jsonc` has one environment per branch. A push to `main` or `develop` triggers the build and deploy. Never deploy manually.
+
+| Environment | Address |
+| --- | --- |
+| `main` | `docs.imagine.uninspired.app` |
+| `develop` | `docs.imagine.dev.uninspired.app` |
 
 ## Not tested
 

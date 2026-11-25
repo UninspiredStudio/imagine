@@ -1,0 +1,201 @@
+---
+title: Quick start
+description: Run Imagine on one host, become its admin, and push and pull a first image.
+order: 1
+---
+
+## Before you start
+
+You need:
+
+- A host with Docker Engine 25.0 or later and Docker Compose 2.20.2 or later. The Compose file uses a health check option (`start_interval`) that needs them.
+- A checkout of the Imagine source on that host. Compose builds the images from it.
+- `openssl`, to generate secrets.
+- A TLS proxy on the same host, with a certificate for the registry host, such as `registry.example.com`. Clients must be able to resolve and reach that host.
+- S3 storage. Choose one:
+  - **Bundled SeaweedFS** runs in the same Compose stack. It needs a second host name on your proxy, such as `s3.registry.example.com`, with its own DNS record and a certificate that covers it.
+  - **External S3** is any S3-compatible provider. You need a bucket, a key pair, and an endpoint that your clients can reach.
+
+Run all commands on this page from the root of the checkout, unless a step says otherwise.
+
+## 1. Create the .env file
+
+1. Copy the example file.
+
+   ```bash
+   cp .env.example .env
+   chmod 600 .env
+   ```
+
+2. Generate two secrets.
+
+   ```bash
+   openssl rand -hex 32   # BETTER_AUTH_SECRET
+   openssl rand -hex 24   # POSTGRES_PASSWORD
+   ```
+
+3. Put them in `.env`, and set `PUBLIC_URL` to the address your proxy serves, with the scheme.
+
+   ```bash
+   PUBLIC_URL=https://registry.example.com
+   BETTER_AUTH_SECRET=
+   POSTGRES_PASSWORD=
+   ```
+
+`BETTER_AUTH_SECRET` must have at least 32 characters. Use hex only for `POSTGRES_PASSWORD`, because it goes into a database URL.
+
+Compose refuses to start while a value that it requires is blank. For every variable, see [Configuration](/configuration/).
+
+## 2. Choose storage
+
+### Bundled SeaweedFS
+
+1. Generate a key pair and a signing key. Imagine and SeaweedFS share the key pair.
+
+   ```bash
+   openssl rand -hex 16   # AWS_ACCESS_KEY_ID
+   openssl rand -hex 32   # AWS_SECRET_ACCESS_KEY
+   openssl rand -hex 32   # SEAWEEDFS_FILER_SIGNING_KEY
+   ```
+
+2. Put them in `.env` and set the public S3 address. Keep the default `S3_ENDPOINT`.
+
+   ```bash
+   AWS_ACCESS_KEY_ID=
+   AWS_SECRET_ACCESS_KEY=
+   SEAWEEDFS_FILER_SIGNING_KEY=
+   S3_ENDPOINT=http://seaweedfs:8333
+   S3_PUBLIC_ENDPOINT=https://s3.registry.example.com
+   ```
+
+SeaweedFS creates the bucket. It refuses to start without `SEAWEEDFS_FILER_SIGNING_KEY`.
+
+### External S3
+
+1. Create the bucket at your provider. Imagine does not create it.
+2. Set your provider's values in `.env`. The addresses below are placeholders.
+
+   ```bash
+   AWS_ACCESS_KEY_ID=
+   AWS_SECRET_ACCESS_KEY=
+   S3_BUCKET=imagine
+   S3_REGION=us-east-1
+   S3_ENDPOINT=https://s3.example.com
+   S3_PUBLIC_ENDPOINT=https://s3.example.com
+   ```
+
+You must change `S3_ENDPOINT`, because its default points at the bundled SeaweedFS. Leave `SEAWEEDFS_FILER_SIGNING_KEY` blank. For provider setup, see [Storage](/storage/).
+
+## 3. Decide how sign-in codes arrive
+
+Sign-in codes and invite links go out by email. For real use, set up [email](/email-and-users/) before the first start.
+
+With neither `PLUNK_API_KEY` nor `SMTP_URL` set, Imagine writes codes and links to the `imagine` log. Use that for development only.
+
+## 4. Start the stack
+
+Run the command for your storage choice.
+
+Bundled SeaweedFS:
+
+```bash
+docker compose --profile s3 up -d --build
+```
+
+External S3:
+
+```bash
+docker compose up -d --build
+```
+
+`imagine` runs the database migrations, then starts listening. `web` starts after `imagine` is healthy. Check both:
+
+```bash
+docker compose ps
+curl http://127.0.0.1:8080/api/meta
+```
+
+On a new registry, `/api/meta` returns your host and `"needsSetup":true`:
+
+```json
+{"host":"registry.example.com","needsSetup":true}
+```
+
+If a service does not start, read the logs with `docker compose logs imagine web postgres`, or see [Troubleshooting](/troubleshooting/).
+
+## 5. Connect your proxy
+
+Forward these hosts:
+
+| Public host | Forward to | When |
+| --- | --- | --- |
+| The host in `PUBLIC_URL` | `127.0.0.1:8080` | Always |
+| The host in `S3_PUBLIC_ENDPOINT` | `127.0.0.1:8333` | Bundled SeaweedFS only |
+
+A default proxy configuration is not enough for image uploads: body size limits, timeouts and headers matter. Follow [TLS proxy](/tls-proxy/) for the required settings and an nginx example.
+
+Until someone signs in, anyone who can reach the registry can become its admin. Do the next step as soon as the proxy works.
+
+## 6. Sign in as the first admin
+
+1. Open `https://registry.example.com`. The page shows **Set up Imagine**.
+2. Enter your email and select **Send code**.
+3. Enter the 6-digit code from your email. Without email configured, read it from the log:
+
+   ```bash
+   docker compose logs imagine
+   ```
+
+The code is valid for 10 minutes. The page signs you in when all six digits are entered, and your account is the admin. If you see **Sign in** instead of **Set up Imagine**, the registry already has an account.
+
+Everyone else needs an invite. You send invites from the **Admin** page.
+
+## 7. Create an API key
+
+1. Open **API keys** and select **Create your first key**.
+2. Enter a **Name**, such as `laptop`.
+3. Under **Scope**, choose **Read & write**. A **Read** key cannot push.
+4. Choose when the key **Expires**, then select **Create key**.
+5. Copy the key and store it in a password manager. Imagine does not show it again. Select **Done**.
+
+See [API keys and CI](/api-keys/) for scopes and expiry.
+
+## 8. Push and pull an image
+
+Run these on any machine with Docker that can reach both hosts.
+
+1. Log in. Paste the API key at the password prompt. Imagine ignores the username.
+
+   ```bash
+   docker login registry.example.com -u you@example.com
+   ```
+
+2. Tag and push an image. This example uses `hello-world`. You can use any single-platform local image.
+
+   ```bash
+   docker pull hello-world
+   docker tag hello-world registry.example.com/team/app:1.0
+   docker push registry.example.com/team/app:1.0
+   ```
+
+   The first push creates the repository. You do not create it in the web UI.
+
+3. Remove the local copies, then pull from the registry.
+
+   ```bash
+   docker image rm registry.example.com/team/app:1.0 hello-world
+   docker pull registry.example.com/team/app:1.0
+   ```
+
+   The pull downloads the image layers from your S3 host. If the push works and the pull does not, check that this machine can reach `S3_PUBLIC_ENDPOINT`.
+
+4. Open **Images** in the web UI. `team/app` is listed with the **Private** badge.
+
+Private repositories need a key to pull. Admins can make a repository public: see [Browse and manage images](/manage-images/).
+
+## Next steps
+
+- Set up [email and invite your team](/email-and-users/).
+- Set up [backups](/backup-and-upgrade/).
+- Learn how [cleanup](/cleanup/) frees storage.
+- Give your team [Push and pull images](/push-and-pull/) and [API keys and CI](/api-keys/).

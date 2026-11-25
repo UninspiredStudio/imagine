@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "imagine-docs",
+  "compatibility_date": "2026-11-25",
+  // Fully prerendered, so there is no Worker script.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  // One Worker per branch, imagine-docs-main and imagine-docs-develop. Pushes to the branch deploy it. Never deploy manually.
+  "env": {
+    "main": {
+      "routes": [{ "pattern": "docs.imagine.uninspired.app", "custom_domain": true }]
+    },
+    "develop": {
+      "routes": [{ "pattern": "docs.imagine.dev.uninspired.app", "custom_domain": true }]
+    }
+  }
+}

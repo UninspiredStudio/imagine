@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "docs", "runtimeExecutable": "bun", "runtimeArgs": ["run", "--filter", "@imagine/docs", "dev", "--port", "4321"], "port": 4321 }
+  ]
+}

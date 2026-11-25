@@ -1,0 +1,183 @@
+---
+title: Registry compatibility
+description: The registry routes, uploads, limits and errors that Imagine supports, and what is missing or untested.
+section: Reference
+order: 31
+---
+
+Imagine implements push, pull and tag listing from the Docker Registry v2 and OCI distribution APIs. It does not implement deletion through the registry API, or referrers.
+
+## Routes
+
+`<name>` is a repository name such as `team/app`. `<reference>` is a tag or a digest.
+
+| Method and path | Access | Success | What it does |
+| --- | --- | --- | --- |
+| `GET`, `HEAD` `/v2/` (or `/v2`) | any valid credential | 200 | Version check. Sends `Docker-Distribution-API-Version: registry/2.0`. |
+| `GET`, `HEAD` `/token` | none, or an API key | 200 | Issues a registry token. |
+| `GET`, `HEAD` `/v2/<name>/manifests/<reference>` | pull | 200 | Reads a manifest. |
+| `PUT` `/v2/<name>/manifests/<reference>` | push | 201 | Stores a manifest, and moves the tag if the reference is a tag. |
+| `HEAD` `/v2/<name>/blobs/<digest>` | pull | 200 | Reports a blob's size. |
+| `GET` `/v2/<name>/blobs/<digest>` | pull | 307 | Redirects to a presigned S3 URL. |
+| `POST` `/v2/<name>/blobs/uploads/` | push | 202 or 201 | Starts an upload (202). With `digest` or a successful mount, stores the blob at once (201). |
+| `GET`, `HEAD` `/v2/<name>/blobs/uploads/<uuid>` | pull | 204 | Reports how many bytes are stored. |
+| `PATCH` `/v2/<name>/blobs/uploads/<uuid>` | push | 202 | Appends a chunk. |
+| `PUT` `/v2/<name>/blobs/uploads/<uuid>?digest=<digest>` | push | 201 | Appends an optional last chunk, checks the digest and stores the blob. |
+| `GET`, `HEAD` `/v2/<name>/tags/list` | pull | 200 | Lists tags. |
+
+The trailing slash on `/blobs/uploads/` is optional. Any other method on these `/v2` routes gets 405, or 401 without push access (for `/v2/`, without a valid credential). Any other path under `/v2/` gets 404, and so does any other method or path under `/token`, such as `POST /token`.
+
+Every response carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`.
+
+### Names and references
+
+- **Repository names:** lowercase letters and digits, with `.`, `_`, `__` or one or more `-` as separators inside a part. Parts are separated by `/`. At most 255 characters.
+- **Tags:** letters, digits, `_`, `.` and `-`. At most 128 characters. The first character is not `.` or `-`.
+- **Digests:** `sha256` and `sha512`, in lowercase hex. Other algorithms are refused.
+
+A push creates the repository.
+
+## Authentication
+
+1. A client calls a route without enough access. It gets 401 with a `Bearer` challenge that names the token address, the host as `service`, and the scope it needs: `repository:<name>:pull` or `repository:<name>:pull,push`. The challenge for `/v2/` has no scope.
+2. The client calls `GET /token` with that scope. It sends an [API key](/api-keys/) as the Basic password. The username is ignored. Without credentials, the request is anonymous.
+3. The response has `token`, `access_token` (the same value), `expires_in` (`300`) and `issued_at`.
+4. The client repeats the first request with `Authorization: Bearer` and the token.
+
+Rules for tokens:
+
+- A token is valid for 300 seconds. There are no refresh tokens.
+- `/token` still answers 200 when an action is not allowed, but leaves that action out of the token. A read-only key gets a pull-only token.
+- Anonymous tokens can only pull from public repositories.
+- `scope` can be repeated, and one value can hold several scopes separated by spaces. Only `repository:<name>:<actions>` with `pull` and `push` grants access. Other scope types, and other lowercase actions, are ignored. A scope with `*` in its actions is ignored whole, so `pull,push,*` grants nothing.
+- Every request checks the owner again. A banned or removed user loses access even if the token has not expired.
+- The key and the repository's visibility are not checked again. After you revoke a key, it expires, or you make a repository private, a token issued earlier keeps its access for up to 5 minutes.
+- `/token` refuses a registry token as the credential.
+
+You can also send an API key as Basic credentials straight to `/v2` routes. A browser session can pull but not push. Public repositories can be read with no credentials at all.
+
+A caller who lacks access gets 401, never 403. A missing repository looks like a private one to an anonymous caller. `/v2/` itself always needs a valid credential, and an anonymous token counts as one.
+
+Registry routes and `/token` have no rate limit in Imagine.
+
+## Manifests
+
+Imagine accepts any manifest whose `Content-Type` is `application/json` or `application/` followed by a type that ends in `+json`. Parameters after `;` are ignored. This covers the OCI image manifest and index, and the Docker schema 2 manifest and manifest list. Helm charts and other OCI artifacts use the same rules but are untested.
+
+A manifest `PUT` must also meet these rules:
+
+- The body is JSON with `schemaVersion` 2. Schema 1 is refused.
+- If the body has a `mediaType`, it equals the `Content-Type`.
+- Each descriptor has `mediaType`, a supported `digest` and a whole, non-negative `size`.
+- The blobs in `config` and `layers` are already in the same repository.
+- The manifests in an index's `manifests` list are already in the same repository.
+- A descriptor may be missing from the registry only if it has `urls` and its media type contains `nondistributable`.
+
+A `subject` is accepted, and need not exist.
+
+A manifest pushed by tag gets a `sha256` digest. A manifest pushed by digest is hashed with that digest's algorithm, and the result must match. The response has `Location` (by digest) and `Docker-Content-Digest`.
+
+A `GET` returns the exact bytes that were pushed, with the pushed media type. The `Accept` header is ignored and no conversion takes place.
+
+## Uploads
+
+Upload responses with 202 or 204 carry `Location`, `Range` and `Docker-Upload-UUID`. A 201 carries `Location` and `Docker-Content-Digest`. `Range` covers the stored bytes, for example `0-99`. An empty upload reports `0-0`.
+
+| Kind | How |
+| --- | --- |
+| Monolithic, one request | `POST` with `?digest=<digest>` and the whole blob as the body. If it fails, the upload is discarded. |
+| Monolithic, two requests | `POST`, then `PUT` with `?digest=<digest>` and the whole blob. |
+| Chunked | `POST`, one or more `PATCH`, then `PUT` with `?digest=<digest>` and an optional last chunk. |
+| Streamed | The same, with a `PATCH` that has no `Content-Range`. The body is appended. |
+| Cross-repository mount | `POST` with `?mount=<digest>&from=<name>`. |
+
+- **`Content-Range`** is optional. If sent, it has the form `0-99`, starts where the stored bytes end, and matches the body length.
+- **Resuming:** if the client disconnects, Imagine keeps the bytes it received. Ask for the status and continue from there. The [cleanup sweep](/cleanup/) removes idle uploads.
+- **Concurrent writes:** a second write to the same upload gets 409 while the first one runs.
+- **Digest mismatch:** the upload is discarded. Start again.
+- **`digest-algorithm`:** `POST` accepts `?digest-algorithm=sha256` or `sha512`. The final digest must then use it.
+- **Mounts:** the caller needs pull access to `from`. If the blob is not there, the caller cannot pull it, or `from` is missing, Imagine starts a normal upload and answers 202.
+- **Cancelling:** there is no `DELETE` on uploads.
+
+The server hashes the blob and writes it to S3 before it answers the final `PUT`. For large blobs that takes a while with no bytes sent, so your [TLS proxy](/tls-proxy/) needs a long read timeout.
+
+## Downloads and ranges
+
+A blob `GET` answers 307 with the presigned URL in `Location`. The URL is valid for `PRESIGN_TTL_SECONDS`, 900 by default. The client downloads from S3 and must be able to reach `S3_PUBLIC_ENDPOINT`. See [Configuration](/configuration/).
+
+The registry does not read the `Range` request header. The client sends it to the presigned URL, and the S3 store answers. No range test is recorded.
+
+A blob can be read only through a repository that contains it.
+
+## Tag listing
+
+`GET /v2/<name>/tags/list` returns `name` and `tags`, in byte order. Without `n` it returns all tags.
+
+| Parameter | Effect |
+| --- | --- |
+| `n` | Page size. `0` returns an empty list. A negative number, or text that is not a number, gets 400 `UNSUPPORTED`. A blank `n` counts as `0`. There is no maximum. |
+| `last` | Returns only tags after this one. |
+
+When more tags follow, the response has a relative `Link` header with `rel="next"`. An unknown repository gets 404 `NAME_UNKNOWN`.
+
+There is no catalog: `/v2/_catalog` gets 404.
+
+## Size limits
+
+| What | Limit |
+| --- | --- |
+| Manifest | 4 MiB (4194304 bytes), fixed. |
+| Blob | `MAX_BLOB_BYTES`, 16 GiB by default. The whole blob counts, across all its chunks. |
+
+Both limits answer 413 `SIZE_INVALID`. When a chunk goes over, its bytes are dropped and the earlier ones stay. The exception is the one-request `POST`, which discards the upload. Your TLS proxy can have its own, lower limit.
+
+## Errors
+
+Errors use the OCI format:
+
+```json
+{ "errors": [{ "code": "MANIFEST_UNKNOWN", "message": "manifest unknown to registry" }] }
+```
+
+| Status | Code | When |
+| --- | --- | --- |
+| 400 | `NAME_INVALID` | The repository name is invalid, in the path, in `from` or in a token scope. |
+| 400 | `DIGEST_INVALID` | The digest is malformed, missing from the final `PUT`, not the digest of the bytes, or not of the declared algorithm. Also for an unsupported `digest-algorithm`. |
+| 400 | `MANIFEST_INVALID` | The reference, `Content-Type` or body of a manifest `PUT` breaks a rule above. |
+| 400 | `MANIFEST_BLOB_UNKNOWN` | A blob or child manifest is not in the repository. |
+| 400 | `BLOB_UPLOAD_INVALID` | `Content-Range` is malformed, or the body was cut off. |
+| 400 | `UNSUPPORTED` | `n` is invalid. |
+| 401 | `UNAUTHORIZED` | Credentials are missing, invalid or not enough. `/v2` sends a `Bearer` challenge, `/token` a `Basic` one. |
+| 404 | `BLOB_UNKNOWN` | The blob is not in this repository. |
+| 404 | `MANIFEST_UNKNOWN` | No such tag or manifest. A malformed reference also gets this on reads. |
+| 404 | `BLOB_UPLOAD_UNKNOWN` | No such upload in this repository, or it is finished, removed or its ID is malformed. |
+| 404 | `NAME_UNKNOWN` | Tag listing of an unknown repository. |
+| 404 | `UNSUPPORTED` | No such route. |
+| 405 | `UNSUPPORTED` | The route exists but not for this method. |
+| 409 | `BLOB_UPLOAD_INVALID` | Another request is still writing this upload. |
+| 413 | `SIZE_INVALID` | Over a size limit. |
+| 416 | `BLOB_UPLOAD_INVALID` | The chunk does not start where the stored bytes end, or its length does not match `Content-Range`. The `Range` header has the stored range. |
+| 500 | `UNKNOWN` | Server error. `upload could not be written` means the spool disk failed or is full. `internal error` is logged by the server. |
+
+Imagine does not use `DENIED` or `TOOMANYREQUESTS`.
+
+## Not supported
+
+- **`DELETE`** on manifests (by tag or digest), blobs and uploads: 405 with push access, 401 without. Admins delete images and tags in the web UI. See [Browse and manage images](/manage-images/).
+- **Referrers:** `/v2/<name>/referrers/<digest>` gets 404 `UNSUPPORTED`. Imagine stores `subject` but does not list it, and does not send `OCI-Subject`.
+- **Catalog:** `/v2/_catalog` gets 404 `UNSUPPORTED`.
+- **`POST /token`:** the OAuth2 form of the token request, including refresh tokens.
+
+## What is tested
+
+| Tool or feature | Status |
+| --- | --- |
+| Push and pull with the Docker client | Works with a real client. |
+| Uploads, mounts, size limits, access rules and tokens | Covered in part by automated tests that call the server directly, with a fake S3 store. |
+| A 6 GiB upload through nginx | Tested, but not with the Docker client. |
+| Layers over 5 GB from the Docker client | Not tested. |
+| OCI conformance suite | Not run. |
+| Multi-arch images with a real client | Not tested. |
+| Helm | Not tested. |
+| cosign | Not tested. Referrers are missing. |
+| Other clients, such as Podman, Skopeo and containerd | No test is recorded. |

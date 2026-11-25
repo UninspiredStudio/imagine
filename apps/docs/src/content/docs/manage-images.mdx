@@ -1,0 +1,108 @@
+---
+title: Browse and manage images
+description: Find images, read their tags and platforms, change visibility, and delete what you no longer need.
+section: Using Imagine
+order: 12
+---
+
+Sign in to the registry's web address and open **Images**. Everyone who is signed in sees every repository, private or public.
+
+## Members and admins
+
+| Action | Member | Admin |
+| --- | --- | --- |
+| Browse images, tags and platforms | Yes | Yes |
+| Pull and push, with a key | Yes | Yes |
+| **Make public** or **Make private** | No | Yes |
+| Delete a tag | No | Yes |
+| **Delete image** | No | Yes |
+
+Members don't see the buttons for admin actions. To change who is an admin, see [Email, users and invites](/email-and-users/).
+
+## Find an image
+
+- Type part of a name in **Search repositories**, such as `team/` or `api`. Search covers names only, not tags.
+- Choose **Sort: Last pushed** (the default) or **Sort: Name**.
+- The page shows 30 repositories at first. Select **Load more** for the next 30.
+
+Each card shows the name, visibility, number of tags, size and last push. A repository shows **Never pushed** when no manifest reached the registry, for example after a push that stopped early.
+
+## Read the image page
+
+Select a card to open its page. Copy the full image reference at the top. Below it:
+
+| Field | Meaning |
+| --- | --- |
+| **Tags** | Number of tags. |
+| **Total size** | Stored size of all layers and configs linked to the repository. A layer shared by several tags counts once. Layers of untagged images count too. |
+| **Created** | When the repository was created. |
+| **Last pushed** | When a new manifest was last pushed. |
+
+A manifest describes one image or one set of platforms. Pushing a manifest that is already in the repository does not change its push time. So a new tag on an existing image does not change **Last pushed**.
+
+Sizes are the stored size of the layers and configs, and use decimal units, so 1 MB is 1,000,000 bytes. A layer that two repositories share counts in both.
+
+## Tags and platforms
+
+Use **Search tags** to filter the list. Choose **Sort: Newest first** (the default) or **Sort: Name**. The list shows 25 tags at a time.
+
+| Column | Meaning |
+| --- | --- |
+| **Tag** | The tag, with **also tagged:** when other tags point to the same digest. |
+| **Digest** | The start of the digest. Use the copy button for the whole value. |
+| **Platforms** | Such as `linux/amd64`. Blank when the manifest names no platform or it can't be read. |
+| **Size** | All platforms together. A layer that platforms share counts once. |
+| **Pushed** | When the manifest was first pushed, not when the tag last moved. |
+
+Select a tag to open it. You get **Pull by tag** and **Pull by digest** commands to copy, the push time, and whether it is an **Image index** (it can hold several platforms) or an **Image manifest** (one image). For when to use each command, see [Push and pull images](/push-and-pull/).
+
+On a narrow screen, open the tag to see its platforms and size, and the full digest in **Pull by digest**.
+
+## Change visibility
+
+New repositories are **Private**. Admins can change this on the image's page.
+
+To let anyone pull without logging in:
+
+1. Select **Make public**.
+2. Confirm with **Make public**.
+
+Anyone who can reach the registry can then pull every tag in this repository, and any untagged image by its digest. Pushing still needs a key. The web UI still needs a sign-in.
+
+To require a key again:
+
+1. Check that no server or CI job pulls without a login.
+2. Select **Make private**.
+3. Confirm with **Make private**.
+
+New pulls without a key then fail. A registry token given out before the change can still pull for up to 5 minutes. Layer links already given out work until they expire, 15 minutes by default.
+
+## Delete a tag
+
+Admins only.
+
+1. On the image's page, select the trash button beside the tag.
+2. Read what happens to the image, then select **Delete tag**.
+
+Pulls by that tag stop working. What happens next depends on the other tags:
+
+- **Another tag points to the same image.** The image stays under that tag.
+- **No other tag points to it.** The image becomes untagged and disappears from the list. You can still pull it by digest, so copy the digest first if you may need it.
+
+Deleting a tag frees no storage. An untagged image keeps its storage until the whole repository is deleted. To bring back a tag, push it again.
+
+## Delete an image
+
+Admins only. **Delete image** deletes the whole repository, with all of its tags and untagged images. It can't be undone.
+
+1. On the image's page, select **Delete image**.
+2. Type the repository's full name.
+3. Select **Delete image**.
+
+New pulls from the repository fail right away, by tag or by digest. Uploads in progress end. Other repositories keep working, even when they share layers.
+
+Storage is freed later by the cleanup sweep. See [Cleanup and storage use](/cleanup/).
+
+You can push to the same name again. The new repository starts private, even when the old one was public.
+
+Delete images and tags in the web UI. Docker and other registry clients can't delete them. See [Registry compatibility](/registry-compatibility/).

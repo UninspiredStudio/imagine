@@ -39,3 +39,14 @@ special-case the code to pass it.
   the feature allows, batch them, and skip the query when there is nothing to do.
 
 <!-- agentic-setup:end -->
+
+## Documentation
+
+When a code change makes documentation wrong or incomplete, update it in the same change. That
+covers the user docs in `apps/docs/src/content/docs`, `README.md` and `.env.example`. Search them for the
+behavior, setting, UI label, error text or number you changed.
+
+## Deployment
+
+Never deploy manually, and never tell the user to. Builds and deploys are always triggered by pushes to
+`main` or `develop`. Dry runs are fine.

@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --astro-code-foreground: theme("colors.default-font");
+    --astro-code-background: theme("colors.neutral-50");
+    --astro-code-token-constant: theme("colors.warning-700");
+    --astro-code-token-string: theme("colors.success-700");
+    --astro-code-token-comment: theme("colors.neutral-500");
+    --astro-code-token-keyword: theme("colors.brand-700");
+    --astro-code-token-parameter: theme("colors.default-font");
+    --astro-code-token-function: theme("colors.brand-800");
+    --astro-code-token-string-expression: theme("colors.success-700");
+    --astro-code-token-punctuation: theme("colors.neutral-600");
+    --astro-code-token-link: theme("colors.brand-700");
+  }
+
+  /* Clears the sticky top bar on mobile. */
+  html {
+    @apply mobile:scroll-pt-20;
+  }
+
+  /* Subframe injects this with JavaScript, which server-rendered icons never load. */
+  [class*="icon-wrapper-module_root"] {
+    @apply inline-flex flex-none items-center;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* Rendered Markdown. :where() and :not([class]) leave Subframe components inside it alone. */
+@layer components {
+  .prose {
+    @apply text-body font-body text-secondary-font;
+  }
+  .prose > * + * {
+    @apply mt-4;
+  }
+  /* Astro gives islands display: contents, which drops their margin. */
+  .prose > astro-island {
+    @apply block;
+  }
+  .prose :where(h2) {
+    @apply mt-10 scroll-mt-6 text-heading-2 font-heading-2 text-default-font;
+  }
+  .prose :where(h3) {
+    @apply mt-8 scroll-mt-6 text-heading-3 font-heading-3 text-default-font;
+  }
+  .prose :where(h4) {
+    @apply mt-6 scroll-mt-6 text-body-bold font-body-bold text-default-font;
+  }
+  .prose :where(p a, li a, td a) {
+    @apply text-brand-700 underline underline-offset-2 hover:text-brand-800;
+  }
+  .prose :where(strong) {
+    @apply font-body-bold font-semibold text-default-font;
+  }
+  .prose :where(ul) {
+    @apply list-disc pl-5;
+  }
+  .prose :where(ol) {
+    @apply list-decimal pl-5;
+  }
+  .prose :where(li) {
+    @apply mt-1.5 marker:text-neutral-400;
+  }
+  .prose :where(li > * + *) {
+    @apply mt-2;
+  }
+  .prose :where(blockquote) {
+    @apply border-l-2 border-solid border-brand-300 pl-4 text-subtext-color;
+  }
+  .prose :where(hr) {
+    @apply my-8 border-neutral-border;
+  }
+  .prose :where(img:not([class])) {
+    @apply rounded-lg border border-solid border-neutral-border;
+  }
+  .prose :where(:not(pre) > code) {
+    @apply rounded-sm bg-neutral-100 px-1 py-0.5 text-monospace-body font-monospace-body text-default-font;
+  }
+  .prose :where(pre) {
+    @apply overflow-x-auto rounded-md border border-solid border-neutral-border px-4 py-3 pr-12 text-monospace-body font-monospace-body;
+  }
+  .prose :where(pre code) {
+    font: inherit;
+  }
+  .prose :where(table:not([class])) {
+    @apply block overflow-x-auto;
+  }
+  .prose :where(table:not([class]) th) {
+    @apply border-b border-solid border-neutral-border py-2 pr-6 text-left text-caption-bold font-caption-bold text-subtext-color;
+  }
+  .prose :where(table:not([class]) td) {
+    @apply border-b border-solid border-neutral-border py-2 pr-6 align-top;
+  }
+}

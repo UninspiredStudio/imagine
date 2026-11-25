@@ -1,0 +1,62 @@
+---
+title: Imagine documentation
+description: A self-hosted Docker and OCI registry for one organization.
+order: 0
+---
+
+Imagine stores your organization's container images on your own infrastructure. You change image names to `<host>/<team>/<app>` once, then use normal `docker push` and `docker pull`. A web UI handles browsing, API keys and user management.
+
+## Where to go next
+
+**You host Imagine.** Start with the [quick start](/quick-start/). Then read [TLS proxy](/tls-proxy/), [Storage](/storage/) and [Email, users and invites](/email-and-users/). Before you rely on the registry, set up [backups](/backup-and-upgrade/).
+
+**You push and pull images.** Ask an admin for an invite, then read [API keys and CI](/api-keys/) and [Push and pull images](/push-and-pull/).
+
+**Something fails.** See [Troubleshooting](/troubleshooting/).
+
+## How the pieces fit
+
+Imagine runs in Docker Compose on one host. You bring the TLS proxy, and the S3 store if you do not use the bundled one.
+
+| Service | What it does | Published on |
+| --- | --- | --- |
+| `web` | nginx. Serves the web UI and forwards `/api`, `/v2` and `/token` to `imagine`. | `127.0.0.1:8080` |
+| `imagine` | The Bun server: registry, REST API and sign-in. Runs database migrations at start and the [cleanup sweep](/cleanup/) on a schedule. | none |
+| `postgres` | Postgres 17. Holds the image index and accounts. | none |
+| `seaweedfs` | Optional bundled S3 store. Holds image blobs when you do not use an external S3 provider. | `127.0.0.1:8333` |
+
+You run a TLS proxy in front of `web`, and in front of `seaweedfs` if you use it. Compose itself serves plain HTTP on loopback.
+
+A push goes through the proxy and `web` to `imagine`. The server holds the upload on a local volume, hashes it, writes it to S3 and records it in Postgres.
+
+A pull of a blob returns a redirect to a short-lived presigned S3 URL. Docker downloads the blob from S3 directly, so every client must be able to reach your public S3 endpoint.
+
+## Accounts and access
+
+- People sign in to the web UI with a 6-digit email code. There are no account passwords.
+- The first person to sign in on an empty registry becomes admin. Everyone else needs an invite from an admin.
+- Docker uses an API key as its password. A key has the **Read** or **Read & write** scope.
+- New repositories are private. Any valid key can pull from them. Anyone can pull a public repository without logging in.
+- A **Read & write** key can push to every repository. There are no per-team or per-repository permissions.
+
+## What works
+
+- Push and pull with a real Docker client.
+- [Browsing images](/manage-images/), changing visibility, and deleting images and tags in the web UI.
+- Creating and revoking [API keys](/api-keys/).
+- [Inviting people](/email-and-users/), changing roles and removing users.
+- Scheduled [cleanup](/cleanup/) of unfinished uploads and unreferenced blobs.
+
+## Not built
+
+- The registry `DELETE` API. The registry answers `DELETE` on manifests and blobs with 405, or with 401 if the caller has no push access. Admins delete images and tags in the web UI instead.
+- The referrers API. See [Registry compatibility](/registry-compatibility/).
+- Paging and search in the REST API. The web UI loads the full list of repositories and searches it in the browser.
+- More than one `imagine` replica. Uploads and some queues are local to the process and its host.
+
+## Not tested
+
+- Layers over 5 GB from a real Docker client. A 6 GiB upload through nginx was tested without one.
+- The OCI conformance suite, multi-arch images, Helm and cosign.
+- The [nginx examples](/tls-proxy/) in these docs, against the project's Compose file.
+- `proxy_buffering off` on the S3 host.

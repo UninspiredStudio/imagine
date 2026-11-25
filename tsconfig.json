@@ -11,5 +11,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["apps/*/src", "apps/*/drizzle.config.ts", "apps/*/vite.config.ts", "packages/*/src", "packages/components/ui"]
+  "include": ["apps/*/src", "apps/*/drizzle.config.ts", "apps/*/vite.config.ts", "packages/*/src", "packages/components/ui"],
+  // EXEMPT: Astro generates its own types. `bun run --filter @imagine/docs check` covers it.
+  "exclude": ["apps/docs"]
 }
