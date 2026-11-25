@@ -1,3 +1,4 @@
+# Build from the repo root: bun install needs the root package.json and bun.lock.
 FROM oven/bun:1.4.4
 WORKDIR /app
 COPY package.json bun.lock ./

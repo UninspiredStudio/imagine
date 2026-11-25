@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - { name: server, dockerfile: Dockerfile }
+          - { name: server, dockerfile: apps/server/Dockerfile }
           - { name: web, dockerfile: apps/web/Dockerfile }
         platform:
           - { arch: amd64, runner: ubuntu-24.04 }

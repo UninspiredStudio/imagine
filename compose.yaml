@@ -3,7 +3,9 @@ name: imagine
 services:
   # ponytail: one replica, because uploads spool to a local volume. Use a shared volume or sticky routing for more.
   imagine:
-    build: .
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
     image: imagine-server
     init: true
     restart: unless-stopped
