@@ -161,7 +161,7 @@ After a restore:
 
 ## Upgrade
 
-You build Imagine from a checkout.
+These steps build Imagine from a checkout. With the [official images](/quick-start/#use-the-official-images), replace step 3 with `docker compose pull imagine web` and `docker compose up -d --no-build`, and add `--profile s3` for the bundled SeaweedFS. Before you upgrade, note the image digests (`docker compose images` and `docker image inspect`), because the tags change and you need the old images to go back.
 
 1. Make a backup. Note that its step 5 starts the registry again: to go back later, you lose everything pushed or changed after the backup.
 2. Get the new code. Then compare `.env.example` with your `.env` for new variables.

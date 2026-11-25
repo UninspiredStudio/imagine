@@ -9,7 +9,13 @@ order: 1
 You need:
 
 - A host with Docker Engine 25.0 or later and Docker Compose 2.20.2 or later. The Compose file uses a health check option (`start_interval`) that needs them.
-- A checkout of the Imagine source on that host. Compose builds the images from it.
+- A checkout of the [Imagine source](https://github.com/UninspiredStudio/imagine) on that host. Compose builds the images from it. You can also use the [official images](#use-the-official-images).
+
+  ```bash
+  git clone https://github.com/UninspiredStudio/imagine.git
+  cd imagine
+  ```
+
 - `openssl`, to generate secrets.
 - A TLS proxy on the same host, with a certificate for the registry host, such as `registry.example.com`. Clients must be able to resolve and reach that host.
 - S3 storage. Choose one:
@@ -107,6 +113,36 @@ External S3:
 ```bash
 docker compose up -d --build
 ```
+
+### Use the official images
+
+The official images are on Docker Hub, for `linux/amd64` and `linux/arm64`:
+
+| Image | Service |
+| --- | --- |
+| [`uninspiredstudioops/imagine-server`](https://hub.docker.com/r/uninspiredstudioops/imagine-server) | `imagine` |
+| [`uninspiredstudioops/imagine-web`](https://hub.docker.com/r/uninspiredstudioops/imagine-web) | `web` |
+
+`latest` and `main` follow the `main` branch, and `develop` follows `develop`. Use the same tag for both images. There are no version tags, so a tag changes with each push to its branch.
+
+To use them instead of building, create `compose.override.yaml` next to `compose.yaml`. Compose reads it by itself:
+
+```yaml
+services:
+  imagine:
+    image: uninspiredstudioops/imagine-server:latest
+  web:
+    image: uninspiredstudioops/imagine-web:latest
+```
+
+Then pull the images and start without a build. With the bundled SeaweedFS, add `--profile s3` after `docker compose` in the second command.
+
+```bash
+docker compose pull imagine web
+docker compose up -d --no-build
+```
+
+### Check the stack
 
 `imagine` runs the database migrations, then starts listening. `web` starts after `imagine` is healthy. Check both:
 

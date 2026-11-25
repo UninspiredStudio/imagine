@@ -49,6 +49,10 @@ Not built yet:
 
 Then sign in right away. See [First sign-in and API keys](#first-sign-in-and-api-keys).
 
+## Official images
+
+The official images are [`uninspiredstudioops/imagine-server`](https://hub.docker.com/r/uninspiredstudioops/imagine-server) (the `imagine` service) and [`uninspiredstudioops/imagine-web`](https://hub.docker.com/r/uninspiredstudioops/imagine-web) (the `web` service). `latest` and `main` follow the `main` branch, and `develop` follows `develop`. To use them instead of building, see the quick start in `apps/docs/src/content/docs/quick-start.mdx`.
+
 ## Configuration
 
 Compose reads these from `.env`. It sets `DATABASE_URL` and `SPOOL_DIR` for you.
@@ -234,3 +238,7 @@ bun run --filter @imagine/docs preview   # serves the build with wrangler
 - The OCI conformance suite, multi-arch images, Helm and cosign. None are recorded as run.
 - The nginx examples above, against this Compose file.
 - `proxy_buffering off` on the S3 host.
+
+## License
+
+[MIT](LICENSE)
