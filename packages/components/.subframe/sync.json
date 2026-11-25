@@ -1,0 +1,7 @@
+{
+  "directory": "ui",
+  "importAlias": "@imagine/components/*",
+  "projectId": "c34b194ceab2",
+  "teamId": 925,
+  "cssType": "tailwind"
+}
