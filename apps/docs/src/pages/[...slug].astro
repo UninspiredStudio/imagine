@@ -2,6 +2,7 @@
 import { render } from "astro:content";
 import Pre from "../components/Pre.astro";
 import Layout from "../layouts/Layout.astro";
+import { markdownHref } from "../markdown";
 import { docHref, getNav } from "../nav";
 
 export async function getStaticPaths() {
@@ -18,11 +19,12 @@ const toc = headings.filter(({ depth }) => depth === 2 || depth === 3);
 const { title, description } = doc.data;
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} markdown={markdownHref(doc)}>
   <article class="flex min-w-0 max-w-[720px] grow flex-col gap-8">
     <header class="flex flex-col gap-1">
       <h1 class="text-heading-1 font-heading-1 text-default-font">{title}</h1>
       <p class="text-body font-body text-subtext-color">{description}</p>
+      <a href={markdownHref(doc)} class="self-start text-caption font-caption text-brand-700 hover:underline">View as Markdown</a>
     </header>
     <div class="prose"><Content components={{ pre: Pre }} /></div>
     {

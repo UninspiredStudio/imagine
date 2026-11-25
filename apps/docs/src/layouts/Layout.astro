@@ -6,9 +6,11 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description: string;
+  /** Address of the page's Markdown version. */
+  markdown?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, markdown } = Astro.props;
 ---
 
 <!doctype html>
@@ -18,6 +20,7 @@ const { title, description } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title.startsWith("Imagine") ? title : `${title} – Imagine docs`}</title>
     <meta name="description" content={description} />
+    {markdown && <link rel="alternate" type="text/markdown" href={markdown} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />

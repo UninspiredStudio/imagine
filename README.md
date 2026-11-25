@@ -212,6 +212,8 @@ TEST_DATABASE_URL=postgres://user:pass@localhost:5432/imagine_sweep bun test app
 
 `apps/docs` is an Astro site that deploys to Cloudflare Workers as static assets. Pages are MDX files in `apps/docs/src/content/docs`. Their path is their URL, and their frontmatter (`title`, `description`, `section`, `order`) builds the sidebar. Pages can import Subframe components. To pass JSX in a prop, wrap the component in a `.tsx` file first, because MDX cannot.
 
+Agents can read every page as Markdown at `/<page>.md`, an index at `/llms.txt`, and all pages in one file at `/llms-full.txt`. All are built from the MDX source, so a component on a page shows up there as JSX.
+
 ```bash
 bun run --filter @imagine/docs dev
 bun run --filter @imagine/docs check
