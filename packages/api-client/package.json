@@ -1,0 +1,17 @@
+{
+  "name": "@imagine/api-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "1.7.15",
+    "@imagine/server": "workspace:*",
+    "better-auth": "1.7.15",
+    "hono": "4.13.16"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
+  }
+}

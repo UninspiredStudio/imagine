@@ -1,0 +1,30 @@
+{
+  "name": "@imagine/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@imagine/api-client": "workspace:*",
+    "@imagine/components": "workspace:*",
+    "@subframe/core": "1.155.0",
+    "@tanstack/react-form": "1.33.5",
+    "@tanstack/react-query": "5.108.0",
+    "@tanstack/react-router": "1.170.46",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "1.169.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "autoprefixer": "10.6.2",
+    "postcss": "8.5.33",
+    "tailwindcss": "3.4.19",
+    "vite": "8.3.8"
+  }
+}
