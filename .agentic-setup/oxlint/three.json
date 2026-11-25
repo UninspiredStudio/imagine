@@ -1,0 +1,25 @@
+{
+  "overrides": [
+    {
+      "files": [
+        "**/frame/**",
+        "**/frames/**",
+        "**/scene.ts",
+        "**/scene/**"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "Date",
+            "message": "Frame code is deterministic: take the time from the frame input, not Date."
+          },
+          {
+            "name": "performance",
+            "message": "Frame code is deterministic: take the time from the frame input, not performance.now()."
+          }
+        ]
+      }
+    }
+  ]
+}

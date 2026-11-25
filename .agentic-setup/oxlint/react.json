@@ -1,0 +1,67 @@
+{
+  "plugins": [
+    "react",
+    "jsx-a11y"
+  ],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/error-boundaries": "error",
+    "react/globals": "error",
+    "react/immutability": "error",
+    "react/purity": "error",
+    "react/refs": "error",
+    "react/set-state-in-effect": "error",
+    "react/set-state-in-render": "error",
+    "react/static-components": "error",
+    "react/use-memo": "error",
+    "react/void-use-memo": "error",
+    "react/only-export-components": [
+      "error",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "react/no-array-index-key": "error",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/media-has-caption": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.test.js",
+        "**/*.spec.js",
+        "**/__tests__/**",
+        "**/e2e/**",
+        "**/testing/**",
+        "**/test-utils/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off",
+        "react/error-boundaries": "off",
+        "react/globals": "off",
+        "react/immutability": "off",
+        "react/purity": "off",
+        "react/refs": "off",
+        "react/set-state-in-effect": "off",
+        "react/set-state-in-render": "off",
+        "react/static-components": "off",
+        "react/use-memo": "off",
+        "react/void-use-memo": "off"
+      }
+    },
+    {
+      "files": [
+        "**/src/routes/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ]
+}

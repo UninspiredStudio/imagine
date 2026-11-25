@@ -1,0 +1,33 @@
+{
+  "rules": {
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "process",
+        "message": "Read config and secrets from Hono `c.env` / the Worker `env` binding (`wrangler types`)."
+      }
+    ],
+    "oxc/no-async-endpoint-handlers": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/scripts/**",
+        "**/tooling/**",
+        "**/tools/**",
+        "**/*.config.ts",
+        "**/*.config.mts",
+        "**/*.config.js",
+        "**/*.config.mjs",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/__tests__/**",
+        "**/testing/**",
+        "**/e2e/**"
+      ],
+      "rules": {
+        "no-restricted-globals": "off"
+      }
+    }
+  ]
+}

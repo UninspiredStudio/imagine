@@ -1,0 +1,17 @@
+# Betterleaks config for `check` (pinned to Betterleaks 1.10.0): the default rules, minus what these
+# repos use on purpose.
+[extend]
+useDefault = true
+# PostHog project keys are public by design (they ship to the browser).
+disabledRules = ["posthog-project-api-key"]
+
+# EXEMPT: the October run's planted mistakes (fake keys the check had to catch), in the history the move
+# into untracked/packages/agentic-setup brought along. Only that repo has this commit.
+[[allowlists]]
+description = "agentic-setup bench: planted fake keys"
+commits = ["0b325fee430fc099bf6810cf4ffef5132110e30a"]
+
+[[allowlists]]
+description = "local development addresses (dev databases on this Mac)"
+regexTarget = "match"
+regexes = ['''@(localhost|127\.0\.0\.1|0\.0\.0\.0)([:/]|$)''']

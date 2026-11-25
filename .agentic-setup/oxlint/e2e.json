@@ -1,0 +1,16 @@
+{
+  "overrides": [
+    {
+      "files": ["**/e2e/**", "**/*.spec.ts", "**/*.spec.tsx", "**/*.spec.js"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "property": "waitForTimeout",
+            "message": "A fixed sleep slows every run and still flakes on a busy Mac. Wait for the condition instead (`await expect(locator).toBeVisible()`, `expect.poll`), or move the page clock with `stillFor()` from the shared fixtures. A wait that must be real time (audio, a held touch) gets a disable comment saying why."
+          }
+        ]
+      }
+    }
+  ]
+}

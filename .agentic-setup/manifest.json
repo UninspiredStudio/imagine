@@ -1,0 +1,33 @@
+{
+  "commit": "4b3fff94ffef835fa4cd3a2b4184247fe15cae8a",
+  "files": {
+    "agents-block.md": "4bd399a1c420f31444aa5009e97b0038040f90cdb4879d42f7f8e2a091e406a7",
+    "betterleaks.toml": "00b82969c031fc8456c177e3bf5cf7b0bbbd82409d2712822798cebef75d6d2a",
+    "bun-test-guard.ts": "60b5c650aad8b344fd82db584100a716a65f4da7688acf02a15effa2b208424f",
+    "caps.ts": "98bdc8d332ed8bc306fd07b6b7c954560c74b43c68e78ab194796574da4a262b",
+    "changed.ts": "ff49abbb54a77afc02b89fd531a4c49547dae64a468303c091f8c227a9af7c4d",
+    "check.ts": "751b13276403df953172373941dfabde5c2fe645e8b668c2e30155bf1d2f116c",
+    "dev.ts": "48747ed7d529ed012d23641619a94306699627edcdd276fc5f77758971081a06",
+    "dupes.ts": "28c0008b7d200e18e421d2dee5e2018d302445f0802cd213ecd678dfd7c2a1a9",
+    "e2e.ts": "a005fcc4f3e90ae3d0b0548c4e5f9bfd4384104fb89b0977a51c5aa92afae0b8",
+    "health.ts": "5d0dfe3a72a10891da0b8751b1279b0e748ac55565430f666df803d1158a09ba",
+    "heavy": "5d7e3c0e1991a6e3eb4f4a69e25a6106f7812b6f2db19514fb89581841237d60",
+    "hooks/install.ts": "ff226a87a0cb06e0becc3cf403021e785265c217ac35ca03aa614439cda9e7e6",
+    "hooks/lint-after-edit.sh": "bbfc4937678f7c4b041d5d95807abb627d9de5c19030dd914e0be848fdc5b62c",
+    "hooks/no-deploy.sh": "6312cdfe7adb18866374ca1f108e1c29eb3eb18ae0151e09cdc7105e1249607f",
+    "hooks/stop-cleanup.sh": "3aa43083b25f528009b781b4759073c9634727b6b4321b82c9992e6d991746bb",
+    "hooks/subframe-guard.sh": "1ff868548f6a98e1e80711b2870b2ac5c1b11f66a1d296d67cf6a9f809a7e876",
+    "lint-baseline.ts": "169a80cd9a514e918971818c80ac3601ee4491cbaa0c9c7d5070ac155c0b984f",
+    "oxlint/base.json": "3990af57b064a7efdccfea39bf291d8f09cc86f1a4a442b4c455a3c0473c007f",
+    "oxlint/directives.ts": "1b2fb781b39f54ef6435166d23dc65e33ecc7d428eb5a4d8266f47858be9ebd4",
+    "oxlint/e2e.json": "7222e298558993240de89d6082ccdee5b35ccab31aef1f2bc680688033c2456e",
+    "oxlint/react.json": "cff3db9323dba105643787b423354204a68bcaa51004931a72b790d32df69266",
+    "oxlint/three.json": "001c4661d80b63b117df9a8d498e2442b59cbd2f2c11800cafa07358a61a4ae4",
+    "oxlint/worker.json": "f69e6157b96032c25ef04f77ddb551da01ee68b9b204aed5639420062c47bf6c",
+    "playwright-fixtures.ts": "75cb7a6974f581dfbba7fc34f231a03e2ec641e685abceab5336804841770840",
+    "playwright.ts": "52079f8bf7bf4f34d2f640bbddf162e1707606898c7b2eb7e4a4026507448520",
+    "tsconfig.base.json": "2e69645bce722562b9d1e2aeae94384248c038bfc35784a9d57010aea73827a1",
+    "verify.ts": "52393d3b340e64344107e0019108a11c45e00a4505d799ca053476201bbb0f1b",
+    "vitest.ts": "70238b47d8ef328873cdad71cc90d2e2e5ab477b02ebc69670c9e407fd23ccbf"
+  }
+}

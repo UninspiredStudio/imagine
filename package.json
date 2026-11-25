@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "e2e": "bun .agentic-setup/e2e.ts",
+    "verify": "bun .agentic-setup/verify.ts",
+    "check": "bun .agentic-setup/check.ts",
     "typecheck": "bun check"
   },
   "devDependencies": {

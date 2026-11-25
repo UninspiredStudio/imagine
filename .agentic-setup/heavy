@@ -1,0 +1,93 @@
+#!/bin/sh
+# Runs a heavy job (browser, GPU, perf, export) in the machine-wide lane: one at a time on this Mac.
+# Nested calls, CI and machines without lockf (Linux CI) run the command straight through.
+# Stop a lane job by its process group. The lock sits in a helper outside that group, so no signal
+# to the job (even SIGKILL) frees the lane before the job and its detached servers are gone.
+lane="$HOME/Library/Caches/uninspired/lane-0"
+# heavy --sweep <mark>: under the lock, stops what a lane job left. Playwright detaches its servers
+# and they outlive the job, so they are found by the mark in their environment, never by name; a
+# listener alone won't do, as a surviving wrangler restarts its workerd. Repeats until none is left.
+if [ "$1" = --sweep ]; then
+  b=${UNINSPIRED_BAND:-3900}
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    # The leading space keeps awk from matching its own MARK.
+    pids=$(ps -axEww -o pid=,command= | MARK="UNINSPIRED_LANE_JOB=$2" awk 'index($0, " " ENVIRON["MARK"]) { print $1 }')
+    [ -z "$pids" ] && break
+    kill -9 $pids 2>/dev/null
+    sleep 0.2
+  done
+  # Then the band, except a listener another live lane job owns (its mark names a running pid outside
+  # <mark>): a lane under another HOME (the tests) must never stop the real lane's server.
+  for p in $(lsof -nP -iTCP:$b-$((b + 9)) -sTCP:LISTEN -t 2>/dev/null); do
+    m=$(ps -Eww -o command= -p "$p" 2>/dev/null | tr ' ' '\n' | sed -n 's/^UNINSPIRED_LANE_JOB=//p' | head -1)
+    case "$m" in "$2"*) ;; ?*) o=${m%:}; kill -0 "${o##*:}" 2>/dev/null && continue ;; esac
+    kill -9 "$p" 2>/dev/null
+  done
+  exit 0
+fi
+if [ -n "$UNINSPIRED_LANE" ] || [ -n "$CI" ] || [ ! -x /usr/bin/lockf ]; then exec "$@"; fi
+mkdir -p "${lane%/*}"
+# A Chrome that failed its launch check (playwright.ts) is named before the queue, not after it.
+[ -s "${lane%/*}/browser-broken" ] &&
+  echo "heavy: a job on Playwright's chrome channel will fail until this is fixed: $(cat "${lane%/*}/browser-broken")" >&2
+# A command that failed on a tree fails again on it: its last failure is kept per checkout or worktree
+# (time, tree hash, command hash), a rerun with no change in between is warned about but still runs,
+# and its pass clears it. The tree is HEAD, the diff against it and the untracked files (names and content).
+top=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -n "$top" ]; then
+  last="${lane%/*}/last-fail.$(printf %s "$top" | shasum | cut -c1-12)"
+  new=$(git -C "$top" ls-files -o --exclude-standard)
+  tree=$({ git -C "$top" rev-parse HEAD; git -C "$top" diff HEAD --binary; echo "$new"
+    [ -n "$new" ] && echo "$new" | (cd "$top" && git hash-object --stdin-paths); } 2>/dev/null | shasum | cut -c1-40)
+  cmd=$(printf '%s\n' "$PWD" "$@" | shasum | cut -c1-40)
+  if [ -s "$last" ] && [ "$(sed -n 2p "$last")" = "$tree" ] && [ "$(sed -n 3p "$last")" = "$cmd" ]; then
+    ago=$(($(date +%s) - $(sed -n 1p "$last")))
+    [ $ago -lt 120 ] && ago="$ago s" || ago="$((ago / 60)) min"
+    echo "heavy: same command, same tree, failed $ago ago: fix the cause first (running it anyway)" >&2
+  fi
+fi
+# A waiter says who it waits for: otherwise it is silent for up to 20 minutes.
+say_wait() { echo "heavy: waiting for the browser lane, held by: $(cat "$lane.holder" 2>/dev/null || echo unknown)" >&2; waited=1; }
+/usr/bin/lockf -k -t 0 "$lane.lock" true 2>/dev/null || say_wait
+job="$lane:$$:"
+live="$lane.live.$$"
+rm -f "$live"
+# The helper, in its own process group (set -m): inside the lock, write the holder, clear the leftovers
+# of any earlier job, say "$live" so the job starts, and once it is gone (even killed) clear its own
+# and empty the holder. Its output goes nowhere, or a queued helper would keep a caller's pipe open.
+set -m
+/usr/bin/lockf -k -t 1200 "$lane.lock" sh -c '
+  printf "repo=%s cwd=%s pid=%s cmd=%s\n" "$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")" "$PWD" "$4" "$5" > "$1.holder"
+  sh "$0" --sweep "$1:"
+  : > "$3"
+  while [ -e "$3" ] && kill -0 "$4" 2>/dev/null; do sleep 0.2; done
+  sh "$0" --sweep "$2"
+  rm -f "$3"
+  : > "$1.holder"' "$0" "$lane" "$job" "$live" "$$" "$*" </dev/null >/dev/null 2>&1 &
+helper=$!
+set +m
+# shortcut: a SIGKILL while queued skips this trap, so that helper queues on and takes the lane for a moment.
+trap 'kill $helper 2>/dev/null; exit 130' INT TERM HUP
+ticks=0
+until [ -e "$live" ]; do
+  # The lane was free a moment ago but another job got it first: say so, as a waiter would.
+  ticks=$((ticks + 1)); [ -z "$waited" ] && [ $ticks -eq 30 ] && say_wait
+  if ! kill -0 $helper 2>/dev/null; then
+    wait $helper; rc=$?
+    echo "heavy: gave up on the browser lane (lockf exit $rc)" >&2
+    exit $rc
+  fi
+  sleep 0.1
+done
+[ -n "$waited" ] && echo "heavy: got the browser lane" >&2
+# A handler (not an ignore, which the job would inherit) keeps this shell alive to wait for the sweep.
+got=; trap "got=1" INT TERM HUP
+env UNINSPIRED_LANE=0 UNINSPIRED_LANE_JOB="$job" "$@"; rc=$?
+rm -f "$live"
+# A job stopped by a signal (a cut-off or ^C) says nothing about the tree, so it isn't kept.
+if [ -n "$top" ]; then
+  if [ $rc -eq 0 ]; then [ "$(sed -n 3p "$last" 2>/dev/null)" = "$cmd" ] && rm -f "$last"
+  elif [ -z "$got" ]; then printf '%s\n%s\n%s\n' "$(date +%s)" "$tree" "$cmd" > "$last"; fi
+fi
+while kill -0 $helper 2>/dev/null; do wait $helper; done
+exit $rc
