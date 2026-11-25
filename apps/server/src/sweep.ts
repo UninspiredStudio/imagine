@@ -92,6 +92,21 @@ export async function sweep({ db, storage, spoolDir }: SweepDeps): Promise<Sweep
   return counts;
 }
 
+// Logs a run's outcome. Returns true only when it finished with no failures. Never rejects, because an unhandled rejection
+// would end the server.
+export async function runSweep(deps: SweepDeps): Promise<boolean> {
+  try {
+    const counts = await sweep(deps);
+    console.log(
+      `sweep: uploads=${counts.uploads} spoolFiles=${counts.spoolFiles} blobs=${counts.blobs} failures=${counts.failures}`,
+    );
+    return counts.failures === 0;
+  } catch (err) {
+    console.error("sweep: run failed", err);
+    return false;
+  }
+}
+
 // The row is deleted and committed before the object is deleted. If the object delete fails, the blob row is put back
 // without links, so it stays unreadable and the next sweep retries it. The blob lock keeps commitBlob from re-inserting the row in between.
 async function removeBlob(db: BunSQLDatabase, storage: S3Client, digest: string): Promise<boolean> {

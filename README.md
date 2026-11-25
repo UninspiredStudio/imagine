@@ -17,12 +17,11 @@ Not built yet:
 | Service | What it does | Published |
 | --- | --- | --- |
 | `web` | nginx. Serves the web UI and forwards `/api`, `/v2` and `/token` to `imagine`. | `127.0.0.1:8080` |
-| `imagine` | The Bun server: registry, REST API and sign-in. Runs database migrations at start. | none |
-| `cron` | Runs the cleanup sweep on `SWEEP_SCHEDULE`. Uses the same image as `imagine`. | none |
+| `imagine` | The Bun server: registry, REST API and sign-in. Runs database migrations at start and the cleanup sweep on `SWEEP_SCHEDULE`. | none |
 | `postgres` | Postgres 17. Holds the image index and accounts. | none |
 | `seaweedfs` | Optional, with `--profile s3`. Bundled S3 store, SeaweedFS 4.52 in `mini` mode. | `127.0.0.1:8333` |
 
-`web` is the entry point. Put your TLS proxy in front of it. `imagine` and `cron` share the `spool` volume, which holds uploads in progress.
+`web` is the entry point. Put your TLS proxy in front of it. The `spool` volume holds uploads in progress.
 
 ## Quick start
 
@@ -73,7 +72,7 @@ Compose reads these from `.env`. It sets `DATABASE_URL` and `SPOOL_DIR` for you.
 | `MAIL_FROM` | with `SMTP_URL` | blank | Sender address. Set it with Plunk too. |
 | `MAX_BLOB_BYTES` | no | `17179869184` (16 GiB) | Largest blob. Counts bytes already uploaded. |
 | `PRESIGN_TTL_SECONDS` | no | `900` | Lifetime of presigned blob URLs, in seconds. |
-| `SWEEP_SCHEDULE` | no | `0 * * * *` | Five-field cron schedule for the `cron` service. Hourly by default. |
+| `SWEEP_SCHEDULE` | no | `0 * * * *` | Five-field cron schedule for the cleanup sweep. Hourly by default. |
 
 With neither `PLUNK_API_KEY` nor `SMTP_URL` set, sign-in codes and invite links are written to the log. Use that for development only.
 
@@ -166,7 +165,7 @@ New repositories are private. Pulls from a private repository need a key. Anyone
 
 ## Cleanup
 
-The `cron` service runs a sweep on `SWEEP_SCHEDULE`. Bun reads the schedule in the local time zone of the `cron` container. This project sets no time zone for it, so that is UTC unless you set `TZ`.
+The `imagine` service runs a sweep on `SWEEP_SCHEDULE`. Bun reads the schedule in the local time zone of the container. This project sets no time zone for it, so that is UTC unless you set `TZ`.
 
 Each sweep removes:
 
@@ -183,7 +182,7 @@ If an S3 delete fails, the sweep counts a failure and the next run retries it. A
 To run a sweep now:
 
 ```bash
-docker compose run --rm cron bun run apps/server/src/cron.ts --once
+docker compose exec imagine bun run apps/server/src/index.ts --sweep
 ```
 
 The command prints one summary line and exits 0 when nothing failed, or 1 otherwise.
@@ -191,7 +190,6 @@ The command prints one summary line and exits 0 when nothing failed, or 1 otherw
 ## Limits
 
 - Run one `imagine` replica. Uploads spool to a local volume, and the upload and auth queues live in process memory. More replicas need a shared volume or sticky routing.
-- Run one `cron` service. Nothing stops two sweeps from running at once.
 
 ## Development
 

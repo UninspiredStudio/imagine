@@ -7,6 +7,7 @@ import { createRegistry } from "./registry.ts";
 import { createAuth, createAuthenticate } from "./auth.ts";
 import { createApi } from "./api.ts";
 import { createMailer } from "./mail.ts";
+import { runSweep } from "./sweep.ts";
 import { createTokenCodec } from "./token.ts";
 
 const config = z
@@ -29,6 +30,7 @@ const config = z
     SMTP_URL: z.url().or(z.literal("")).optional(),
     MAIL_FROM: z.email().or(z.literal("")).optional(),
     SPOOL_DIR: z.string().default("/spool"),
+    SWEEP_SCHEDULE: z.string().default("0 * * * *"),
     // Limits each blob in full, counting bytes already uploaded, so a client can't grow the spool without bound.
     MAX_BLOB_BYTES: z.coerce
       .number()
@@ -74,6 +76,13 @@ const auth = createAuth({
 const tokens = createTokenCodec(config.BETTER_AUTH_SECRET);
 
 const storage = new Bun.S3Client({ ...s3, endpoint: config.S3_ENDPOINT });
+
+const sweepDeps = { db, storage, spoolDir: config.SPOOL_DIR };
+// One sweep by hand, without serving.
+if (process.argv.includes("--sweep")) process.exit((await runSweep(sweepDeps)) ? 0 : 1);
+// Bun.cron waits for runSweep to settle before it schedules the next run, so scheduled runs never overlap.
+Bun.cron(config.SWEEP_SCHEDULE, () => runSweep(sweepDeps));
+
 const registry = createRegistry({
   db,
   storage,

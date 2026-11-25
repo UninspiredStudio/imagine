@@ -28,7 +28,8 @@ services:
       MAX_BLOB_BYTES: ${MAX_BLOB_BYTES:-17179869184}
       PRESIGN_TTL_SECONDS: ${PRESIGN_TTL_SECONDS:-900}
       SPOOL_DIR: /spool
-    # Healthy means migrations ran and the server listens, so cron and web start after it.
+      SWEEP_SCHEDULE: "${SWEEP_SCHEDULE:-0 * * * *}"
+    # Healthy means migrations ran and the server listens, so web starts after it.
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:8080/api/meta').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 30s
@@ -50,29 +51,6 @@ services:
     # Plain HTTP for your TLS proxy, bound to loopback so nothing else reaches it.
     ports:
       - "127.0.0.1:8080:8080"
-
-  # Periodic maintenance on the same spool. Gets only the settings it uses, so auth and mail secrets stay on imagine.
-  cron:
-    # Same build and tag as imagine. Compose builds each service, and the second build is cached. An image-only service raced the build on a fresh machine.
-    build: .
-    image: imagine-server
-    command: ["bun", "run", "apps/server/src/cron.ts"]
-    init: true
-    restart: unless-stopped
-    depends_on:
-      imagine:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://imagine:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/imagine
-      S3_ENDPOINT: ${S3_ENDPOINT:-http://seaweedfs:8333}
-      S3_BUCKET: ${S3_BUCKET:-imagine}
-      S3_REGION: ${S3_REGION:-us-east-1}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env}
-      SPOOL_DIR: /spool
-      SWEEP_SCHEDULE: "${SWEEP_SCHEDULE:-0 * * * *}"
-    volumes:
-      - spool:/spool
 
   postgres:
     image: postgres:17-alpine
