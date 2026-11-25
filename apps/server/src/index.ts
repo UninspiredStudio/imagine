@@ -26,7 +26,7 @@ const config = z
     // Plunk is used if PLUNK_API_KEY is set. Otherwise SMTP is used if SMTP_URL is set. With neither, codes and
     // invite links are written to the log, which is for development only.
     PLUNK_API_KEY: z.string().or(z.literal("")).optional(),
-    PLUNK_API_URL: z.url().default("https://api.useplunk.com"),
+    PLUNK_API_URL: z.url().default("https://next-api.useplunk.com"),
     SMTP_URL: z.url().or(z.literal("")).optional(),
     MAIL_FROM: z.email().or(z.literal("")).optional(),
     SPOOL_DIR: z.string().default("/spool"),
@@ -45,7 +45,10 @@ const config = z
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
   })
-  .refine((c) => !c.SMTP_URL || c.MAIL_FROM, { message: "MAIL_FROM is required when SMTP_URL is set", path: ["MAIL_FROM"] })
+  .refine((c) => !(c.PLUNK_API_KEY || c.SMTP_URL) || c.MAIL_FROM, {
+    message: "MAIL_FROM is required when PLUNK_API_KEY or SMTP_URL is set",
+    path: ["MAIL_FROM"],
+  })
   .parse(process.env);
 
 const db = drizzle(config.DATABASE_URL);

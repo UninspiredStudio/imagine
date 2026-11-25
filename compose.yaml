@@ -18,7 +18,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       PLUNK_API_KEY: ${PLUNK_API_KEY:-}
-      PLUNK_API_URL: ${PLUNK_API_URL:-https://api.useplunk.com}
+      PLUNK_API_URL: ${PLUNK_API_URL:-https://next-api.useplunk.com}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
       S3_ENDPOINT: ${S3_ENDPOINT:-http://seaweedfs:8333}
