@@ -47,7 +47,7 @@ Not built yet:
    docker compose up -d --build                # external S3
    ```
 
-Then sign in right away. See [First sign-in and API keys](#first-sign-in-and-api-keys).
+Then sign in right away. See [First sign-in and personal access tokens](#first-sign-in-and-personal-access-tokens).
 
 ## Official images
 
@@ -140,7 +140,7 @@ server {
 }
 ```
 
-## First sign-in and API keys
+## First sign-in and personal access tokens
 
 The first person to sign in on an empty registry becomes admin. Open `PUBLIC_URL` and sign in with your email before you share the address. Sign-in codes arrive by mail when mail is configured. Otherwise, read the code from the log:
 
@@ -150,9 +150,9 @@ docker compose logs imagine
 
 Other people need an invite. Send one from the **Admin** page. The invite link works for 7 days.
 
-Create your key on the **API keys** page. Use the Read scope for pull-only access. The key is shown once, so copy it right away.
+Create your token on the **Personal access tokens** page. Use the Read scope for pull-only access. The token is shown once, so copy it right away.
 
-Log in with the key as the password. The server ignores the username.
+Log in with the token as the password. The server ignores the username.
 
 ```bash
 docker login registry.example.com -u you@example.com
@@ -160,7 +160,7 @@ docker tag my-image registry.example.com/team/app:1.0
 docker push registry.example.com/team/app:1.0
 ```
 
-New repositories are private. Pulls from a private repository need a key. Anyone can pull a public repository without logging in. Only admins can change visibility, on the image's page.
+New repositories are private. Pulls from a private repository need a token. Anyone can pull a public repository without logging in. Only admins can change visibility, on the image's page.
 
 ## Cleanup
 

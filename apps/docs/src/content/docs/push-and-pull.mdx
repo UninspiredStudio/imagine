@@ -1,27 +1,27 @@
 ---
 title: Push and pull images
-description: Log in with an API key, name your image, and push and pull it with Docker.
+description: Log in with a personal access token, name your image, and push and pull it with Docker.
 section: Using Imagine
 order: 10
 ---
 
-You need Docker and the registry host. The examples use `registry.example.com`. To pull a private image, you need an account and an API key with either scope. To push, the key needs the **Read & write** scope. You can pull a public image without an account. See [API keys and CI](/api-keys/).
+You need Docker and the registry host. The examples use `registry.example.com`. To pull a private image, you need an account and a personal access token with either scope. To push, the token needs the **Read & write** scope. You can pull a public image without an account. See [Personal access tokens and CI](/personal-access-tokens/).
 
 ## Log in
 
-Use an API key as the password. An account has no password of its own.
+Use a personal access token as the password. An account has no password of its own.
 
 ```bash
 docker login registry.example.com -u you@example.com
 ```
 
-Docker asks for the password. Paste the key.
+Docker asks for the password. Paste the token.
 
-Docker needs a username, but Imagine ignores it. The key decides who you are.
+Docker needs a username, but Imagine ignores it. The token decides who you are.
 
-For a script or CI job, send the key through standard input. See [Log in from a script](/api-keys/#log-in-from-a-script).
+For a script or CI job, send the token through standard input. See [Log in from a script](/personal-access-tokens/#log-in-from-a-script).
 
-Docker keeps the login in your credential store. Without one, it writes the key to `config.json`, base64-encoded and not encrypted. Run `docker logout registry.example.com` to remove it.
+Docker keeps the login in your credential store. Without one, it writes the token to `config.json`, base64-encoded and not encrypted. Run `docker logout registry.example.com` to remove it.
 
 ## Name your image
 
@@ -54,7 +54,7 @@ The repository can have as many parts as you like. One part, such as `app`, is v
 
 You don't need to create the repository first. The first push creates it, and it starts private. An admin can make it public. See [Change visibility](/manage-images/#change-visibility).
 
-Any **Read & write** key can push to any repository. Pushing a tag that already exists moves that tag to the new image, without a warning. The old image stays in the registry and can still be pulled by digest.
+Any **Read & write** token can push to any repository. Pushing a tag that already exists moves that tag to the new image, without a warning. The old image stays in the registry and can still be pulled by digest.
 
 ## Pull by tag
 
@@ -78,10 +78,10 @@ Replace `<digest>` with the 64-character value.
 
 | Action | Private repository | Public repository |
 | --- | --- | --- |
-| Pull | Needs a key with either scope | Works without logging in |
-| Push | Needs a **Read & write** key | Needs a **Read & write** key |
+| Pull | Needs a token with either scope | Works without logging in |
+| Push | Needs a **Read & write** token | Needs a **Read & write** token |
 
-A key can pull every private repository in the registry. Access is not set per repository.
+A token can pull every private repository in the registry. Access is not set per repository.
 
 Pulls also need access to the S3 host. Imagine sends the client there to download layers. Ask the person who hosts the registry for its address if your network allows only listed hosts.
 
@@ -95,9 +95,9 @@ Docker puts its own words around the registry's message. Look for the code or me
 
 | Code and message | What it means | What to do |
 | --- | --- | --- |
-| `UNAUTHORIZED`, `credentials are not valid` | The key is wrong, expired or revoked, or its owner was removed or banned. | Create a new key, then log in again. |
+| `UNAUTHORIZED`, `credentials are not valid` | The token is wrong, expired or revoked, or its owner was removed or banned. | Create a new token, then log in again. |
 | `UNAUTHORIZED`, `authentication required` | The request has no login, or its registry token is not valid. | Log in. If you already did, run `docker logout` for the host and log in again. |
-| `UNAUTHORIZED`, `insufficient scope` | Your login does not allow this: a **Read** key is used to push, or you are not logged in. Without a login, a private repository and one that does not exist give the same answer. | Check the name, then log in with a key that has the right scope. |
+| `UNAUTHORIZED`, `insufficient scope` | Your login does not allow this: a **Read** token is used to push, or you are not logged in. Without a login, a private repository and one that does not exist give the same answer. | Check the name, then log in with a token that has the right scope. |
 | `NAME_INVALID`, or Docker refuses the name itself | The repository name breaks the [rules](#name-your-image). | Rename the image. |
 | `MANIFEST_UNKNOWN` | The tag or digest is not in this repository. | Check the name and tag on the image's page. |
 | `SIZE_INVALID`, `blob exceeds … bytes` | One layer is over the registry's limit. The default is 16 GiB. | Make the layer smaller, or ask the host to raise the limit. |

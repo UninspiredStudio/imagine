@@ -4,13 +4,13 @@ description: A self-hosted Docker and OCI registry for one organization.
 order: 0
 ---
 
-Imagine stores your organization's container images on your own infrastructure. You change image names to `<host>/<team>/<app>` once, then use normal `docker push` and `docker pull`. A web UI handles browsing, API keys and user management.
+Imagine stores your organization's container images on your own infrastructure. You change image names to `<host>/<team>/<app>` once, then use normal `docker push` and `docker pull`. A web UI handles browsing, personal access tokens and user management.
 
 ## Where to go next
 
 **You host Imagine.** Start with the [quick start](/quick-start/). Then read [TLS proxy](/tls-proxy/), [Storage](/storage/) and [Email, users and invites](/email-and-users/). Before you rely on the registry, set up [backups](/backup-and-upgrade/).
 
-**You push and pull images.** Ask an admin for an invite, then read [API keys and CI](/api-keys/) and [Push and pull images](/push-and-pull/).
+**You push and pull images.** Ask an admin for an invite, then read [Personal access tokens and CI](/personal-access-tokens/) and [Push and pull images](/push-and-pull/).
 
 **Something fails.** See [Troubleshooting](/troubleshooting/).
 
@@ -37,15 +37,15 @@ A pull of a blob returns a redirect to a short-lived presigned S3 URL. Docker do
 
 - People sign in to the web UI with a 6-digit email code. There are no account passwords.
 - The first person to sign in on an empty registry becomes admin. Everyone else needs an invite from an admin.
-- Docker uses an API key as its password. A key has the **Read** or **Read & write** scope.
-- New repositories are private. Any valid key can pull from them. Anyone can pull a public repository without logging in.
-- A **Read & write** key can push to every repository. There are no per-team or per-repository permissions.
+- Docker uses a personal access token as its password. A token has the **Read** or **Read & write** scope.
+- New repositories are private. Any valid token can pull from them. Anyone can pull a public repository without logging in.
+- A **Read & write** token can push to every repository. There are no per-team or per-repository permissions.
 
 ## What works
 
 - Push and pull with a real Docker client.
 - [Browsing images](/manage-images/), changing visibility, and deleting images and tags in the web UI.
-- Creating and revoking [API keys](/api-keys/).
+- Creating and revoking [personal access tokens](/personal-access-tokens/).
 - [Inviting people](/email-and-users/), changing roles and removing users.
 - Scheduled [cleanup](/cleanup/) of unfinished uploads and unreferenced blobs.
 

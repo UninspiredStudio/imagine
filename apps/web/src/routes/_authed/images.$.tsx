@@ -194,7 +194,7 @@ function VisibilityModal({
       await queryClient.invalidateQueries(repositoriesQueryOptions);
       notifySuccess(
         `${name} is now ${makePublic ? "public" : "private"}`,
-        makePublic ? "Anyone can pull it without credentials." : "Pulls need an API key.",
+        makePublic ? "Anyone can pull it without credentials." : "Pulls need a personal access token.",
       );
       onClose();
     },
@@ -220,7 +220,7 @@ function VisibilityModal({
             </span>
             <span className="text-caption font-caption text-subtext-color">will work without docker login</span>
           </div>
-          <span className="text-caption font-caption text-subtext-color">Pushing still requires an API key.</span>
+          <span className="text-caption font-caption text-subtext-color">Pushing still requires a personal access token.</span>
         </div>
       </ConfirmModal>
     );
@@ -230,7 +230,7 @@ function VisibilityModal({
       icon={<FeatherLock />}
       tone="neutral"
       title={`Make ${name} private?`}
-      description="Pulls will need an API key. Anyone pulling anonymously — CI jobs, servers, other teams — will start getting authentication errors."
+      description="Pulls will need a personal access token. Anyone pulling anonymously — CI jobs, servers, other teams — will start getting authentication errors."
       confirm={{ label: "Make private", icon: <FeatherLock /> }}
       pending={change.isPending}
       onConfirm={() => change.mutate()}

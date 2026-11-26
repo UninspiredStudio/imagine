@@ -132,7 +132,7 @@ Restarting `imagine` interrupts requests in progress. Uploads in progress stay o
 | Variable | What a change breaks or needs |
 | --- | --- |
 | `PUBLIC_URL` | Update your [TLS proxy](/tls-proxy/). For a new host, everyone signs in to the web UI again, runs `docker login` for the new host and uses new image names. Invite links already sent keep the old address. |
-| `BETTER_AUTH_SECRET` | Everyone is signed out of the web UI, and registry tokens already issued stop working. API keys and pending invites keep working. |
+| `BETTER_AUTH_SECRET` | Everyone is signed out of the web UI, and registry tokens already issued stop working. Personal access tokens and pending invites keep working. |
 | `TRUSTED_ORIGINS` | Removed origins can no longer sign in. |
 | `POSTGRES_PASSWORD` | Editing `.env` is not enough. Postgres uses this variable only when it creates an empty database. See below. |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | The new pair must be accepted by your store. Download URLs signed with the old pair stop working if the store revokes it. |

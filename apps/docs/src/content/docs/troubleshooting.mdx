@@ -59,9 +59,9 @@ The registry answers 401 for both missing and insufficient access. Docker may sh
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `docker login` fails, or the registry says `credentials are not valid` | The password is not a working API key: it was mistyped, revoked or has expired, or its owner was banned or removed. The email address and sign-in code do not work here. | Create a key and use it as the password. The username is ignored. See [API keys and CI](/api-keys/). |
+| `docker login` fails, or the registry says `credentials are not valid` | The password is not a working personal access token: it was mistyped, revoked or has expired, or its owner was banned or removed. The email address and sign-in code do not work here. | Create a key and use it as the password. The username is ignored. See [Personal access tokens and CI](/personal-access-tokens/). |
 | `authentication required` | The request carried no token, or a credential that is no longer valid. | Run `docker login registry.example.com`, with the host in the image name. |
-| Pulls work and pushes are refused with `insufficient scope` | You are not logged in (public image), or the key has the **Read** scope. | Log in to the host with a **Read & write** key. |
+| Pulls work and pushes are refused with `insufficient scope` | You are not logged in (public image), or the token has the **Read** scope. | Log in to the host with a **Read & write** token. |
 | A pull without login is refused with `insufficient scope` | The repository is private or does not exist. Both give the same answer. | Log in, or ask an admin to change its visibility. See [Browse and manage images](/manage-images/). |
 | Docker contacts the wrong host or scheme during login or push | The token and upload addresses are built from `PUBLIC_URL`. | Set `PUBLIC_URL` to the address clients use and recreate `imagine`. |
 | `invalid repository name` | The name breaks the naming rules, for example with uppercase letters. | Use a lowercase name such as `team/app`. |

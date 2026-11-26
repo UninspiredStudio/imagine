@@ -186,21 +186,21 @@ The code is valid for 10 minutes. The page signs you in when all six digits are 
 
 Everyone else needs an invite. You send invites from the **Admin** page.
 
-## 7. Create an API key
+## 7. Create a personal access token
 
-1. Open **API keys** and select **Create your first key**.
+1. Open **Personal access tokens** and select **Create your first token**.
 2. Enter a **Name**, such as `laptop`.
-3. Under **Scope**, choose **Read & write**. A **Read** key cannot push.
-4. Choose when the key **Expires**, then select **Create key**.
-5. Copy the key and store it in a password manager. Imagine does not show it again. Select **Done**.
+3. Under **Scope**, choose **Read & write**. A **Read** token cannot push.
+4. Choose when the token **Expires**, then select **Create token**.
+5. Copy the token and store it in a password manager. Imagine does not show it again. Select **Done**.
 
-See [API keys and CI](/api-keys/) for scopes and expiry.
+See [Personal access tokens and CI](/personal-access-tokens/) for scopes and expiry.
 
 ## 8. Push and pull an image
 
 Run these on any machine with Docker that can reach both hosts.
 
-1. Log in. Paste the API key at the password prompt. Imagine ignores the username.
+1. Log in. Paste the personal access token at the password prompt. Imagine ignores the username.
 
    ```bash
    docker login registry.example.com -u you@example.com
@@ -227,11 +227,11 @@ Run these on any machine with Docker that can reach both hosts.
 
 4. Open **Images** in the web UI. `team/app` is listed with the **Private** badge.
 
-Private repositories need a key to pull. Admins can make a repository public: see [Browse and manage images](/manage-images/).
+Private repositories need a token to pull. Admins can make a repository public: see [Browse and manage images](/manage-images/).
 
 ## Next steps
 
 - Set up [email and invite your team](/email-and-users/).
 - Set up [backups](/backup-and-upgrade/).
 - Learn how [cleanup](/cleanup/) frees storage.
-- Give your team [Push and pull images](/push-and-pull/) and [API keys and CI](/api-keys/).
+- Give your team [Push and pull images](/push-and-pull/) and [Personal access tokens and CI](/personal-access-tokens/).

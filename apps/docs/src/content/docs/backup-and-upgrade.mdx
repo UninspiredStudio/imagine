@@ -9,7 +9,7 @@ order: 24
 
 | State | Where | Back up? |
 | --- | --- | --- |
-| Image index, manifests, users, API keys, invites | `postgres-data` volume | Yes |
+| Image index, manifests, users, personal access tokens, invites | `postgres-data` volume | Yes |
 | Layers and image configs | Your S3 bucket, or the `seaweed-data` volume with the bundled SeaweedFS | Yes |
 | Secrets and settings | `.env`, plus your own Compose override and proxy configuration | Yes, stored securely |
 | Uploads in progress | `spool` volume | No. Clients push again. |
@@ -154,7 +154,7 @@ This outline has not been tested. Try it on a spare host before you rely on it. 
 
 After a restore:
 
-- Everything since the backup is undone. Pushes, new users and new keys are lost. API keys you revoked, users you removed and images you deleted come back, and visibility changes revert. Check users, keys and public images.
+- Everything since the backup is undone. Pushes, new users and new tokens are lost. Personal access tokens you revoked, users you removed and images you deleted come back, and visibility changes revert. Check users, tokens and public images.
 - On a new host, uploads that were in progress at the backup are gone. A sweep removes their rows once they are more than 24 hours old, counted from their creation.
 - Objects newer than the database copy stay in the bucket, and the sweep does not find them. Uploading the same layer again brings it back into the index.
 - If the database links a blob whose object is missing, pulls of it fail at the S3 store. Pushing to the same repository does not help, because the registry answers that the layer exists. Restore the missing object. Otherwise, delete the image in the web UI and push it again. Another image that uses the layer recovers only when the object is written again, and mounting the layer does not write it.

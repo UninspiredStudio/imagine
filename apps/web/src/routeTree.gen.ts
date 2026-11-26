@@ -13,8 +13,8 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedAccessTokensRouteImport } from './routes/_authed/access-tokens'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
-import { Route as AuthedApiKeysRouteImport } from './routes/_authed/api-keys'
 import { Route as AuthedImagesSplatRouteImport } from './routes/_authed/images.$'
 
 const AuthedRoute = AuthedRouteImport.update({
@@ -36,14 +36,14 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedAccessTokensRoute = AuthedAccessTokensRouteImport.update({
+  id: '/access-tokens',
+  path: '/access-tokens',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedAdminRoute = AuthedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedApiKeysRoute = AuthedApiKeysRouteImport.update({
-  id: '/api-keys',
-  path: '/api-keys',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedImagesSplatRoute = AuthedImagesSplatRouteImport.update({
@@ -56,15 +56,15 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/invite': typeof InviteRoute
   '/login': typeof LoginRoute
+  '/access-tokens': typeof AuthedAccessTokensRoute
   '/admin': typeof AuthedAdminRoute
-  '/api-keys': typeof AuthedApiKeysRoute
   '/images/$': typeof AuthedImagesSplatRoute
 }
 export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/login': typeof LoginRoute
+  '/access-tokens': typeof AuthedAccessTokensRoute
   '/admin': typeof AuthedAdminRoute
-  '/api-keys': typeof AuthedApiKeysRoute
   '/': typeof AuthedIndexRoute
   '/images/$': typeof AuthedImagesSplatRoute
 }
@@ -73,23 +73,24 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/invite': typeof InviteRoute
   '/login': typeof LoginRoute
+  '/_authed/access-tokens': typeof AuthedAccessTokensRoute
   '/_authed/admin': typeof AuthedAdminRoute
-  '/_authed/api-keys': typeof AuthedApiKeysRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/images/$': typeof AuthedImagesSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/invite' | '/login' | '/admin' | '/api-keys' | '/images/$'
+  fullPaths:
+    '/' | '/invite' | '/login' | '/access-tokens' | '/admin' | '/images/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/invite' | '/login' | '/admin' | '/api-keys' | '/' | '/images/$'
+  to: '/invite' | '/login' | '/access-tokens' | '/admin' | '/' | '/images/$'
   id:
     | '__root__'
     | '/_authed'
     | '/invite'
     | '/login'
+    | '/_authed/access-tokens'
     | '/_authed/admin'
-    | '/_authed/api-keys'
     | '/_authed/'
     | '/_authed/images/$'
   fileRoutesById: FileRoutesById
@@ -130,18 +131,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/access-tokens': {
+      id: '/_authed/access-tokens'
+      path: '/access-tokens'
+      fullPath: '/access-tokens'
+      preLoaderRoute: typeof AuthedAccessTokensRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/admin': {
       id: '/_authed/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthedAdminRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/api-keys': {
-      id: '/_authed/api-keys'
-      path: '/api-keys'
-      fullPath: '/api-keys'
-      preLoaderRoute: typeof AuthedApiKeysRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/images/$': {
@@ -155,15 +156,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedRouteChildren {
+  AuthedAccessTokensRoute: typeof AuthedAccessTokensRoute
   AuthedAdminRoute: typeof AuthedAdminRoute
-  AuthedApiKeysRoute: typeof AuthedApiKeysRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedImagesSplatRoute: typeof AuthedImagesSplatRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedAccessTokensRoute: AuthedAccessTokensRoute,
   AuthedAdminRoute: AuthedAdminRoute,
-  AuthedApiKeysRoute: AuthedApiKeysRoute,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedImagesSplatRoute: AuthedImagesSplatRoute,
 }

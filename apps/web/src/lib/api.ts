@@ -86,8 +86,8 @@ export const platformsQueryOptions = (name: string, digests: string[]) =>
     enabled: digests.length > 0,
   });
 
-export const apiKeysQueryOptions = queryOptions({
-  queryKey: ["api-keys"],
+export const accessTokensQueryOptions = queryOptions({
+  queryKey: ["access-tokens"],
   queryFn: async () =>
     unwrap(await authClient.apiKey.list({ query: { sortBy: "createdAt", sortDirection: "desc" } })).apiKeys,
 });

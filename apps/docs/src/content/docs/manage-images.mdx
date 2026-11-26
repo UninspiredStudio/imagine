@@ -12,7 +12,7 @@ Sign in to the registry's web address and open **Images**. Everyone who is signe
 | Action | Member | Admin |
 | --- | --- | --- |
 | Browse images, tags and platforms | Yes | Yes |
-| Pull and push, with a key | Yes | Yes |
+| Pull and push, with a token | Yes | Yes |
 | **Make public** or **Make private** | No | Yes |
 | Delete a tag | No | Yes |
 | **Delete image** | No | Yes |
@@ -67,15 +67,15 @@ To let anyone pull without logging in:
 1. Select **Make public**.
 2. Confirm with **Make public**.
 
-Anyone who can reach the registry can then pull every tag in this repository, and any untagged image by its digest. Pushing still needs a key. The web UI still needs a sign-in.
+Anyone who can reach the registry can then pull every tag in this repository, and any untagged image by its digest. Pushing still needs a token. The web UI still needs a sign-in.
 
-To require a key again:
+To require a token again:
 
 1. Check that no server or CI job pulls without a login.
 2. Select **Make private**.
 3. Confirm with **Make private**.
 
-New pulls without a key then fail. A registry token given out before the change can still pull for up to 5 minutes. Layer links already given out work until they expire, 15 minutes by default.
+New pulls without a token then fail. A registry token given out before the change can still pull for up to 5 minutes. Layer links already given out work until they expire, 15 minutes by default.
 
 ## Delete a tag
 

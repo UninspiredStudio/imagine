@@ -1,23 +1,23 @@
 ---
-title: API keys and CI
-description: Create, use and revoke the keys that Docker and CI log in with.
+title: Personal access tokens and CI
+description: Create, use and revoke the tokens that Docker and CI log in with.
 section: Using Imagine
 order: 11
 ---
 
-An API key is your password for `docker login`. Each key belongs to the person who created it. You see and revoke only your own keys.
+A personal access token is your password for `docker login`. Each token belongs to the person who created it. You see and revoke only your own tokens.
 
-## Create a key
+## Create a token
 
-1. Sign in to the registry's web address with your email and open **API keys**. If you are new, [accept your invite](/email-and-users/) first.
-2. Select **Create key**. If you have no keys, select **Create your first key**.
-3. Enter a **Name**, up to 32 characters. Use one that tells you where the key is used.
+1. Sign in to the registry's web address with your email and open **Personal access tokens**. If you are new, [accept your invite](/email-and-users/) first.
+2. Select **Create token**. If you have no tokens, select **Create your first token**.
+3. Enter a **Name**, up to 32 characters. Use one that tells you where the token is used.
 4. Choose a **Scope** and when it **Expires**.
-5. Select **Create key**.
-6. Copy the key and store it in your password manager or CI secrets.
+5. Select **Create token**.
+6. Copy the token and store it in your password manager or CI secrets.
 7. Select **Done**.
 
-Imagine shows the key once. It stores a hash and the first six characters, so nobody can show you the whole key again. If you lose it, revoke it and create another.
+Imagine shows the token once. It stores a hash and the first six characters, so nobody can show you the whole token again. If you lose it, revoke it and create another.
 
 ### Scopes
 
@@ -26,47 +26,47 @@ Imagine shows the key once. It stores a hash and the first six characters, so no
 | **Read** | Yes | No |
 | **Read & write** (default) | Yes | Yes |
 
-A scope covers every repository in the registry. You can't limit a key to one repository.
+A scope covers every repository in the registry. You can't limit a token to one repository.
 
-A key works only for pushing and pulling. It can't sign in to the web UI, call the UI's API, change visibility or delete images. This is true for an admin's key too.
+A token works only for pushing and pulling. It can't sign in to the web UI, call the UI's API, change visibility or delete images. This is true for an admin's token too.
 
 ### Expiry
 
-| **Expires** | The key stops working |
+| **Expires** | The token stops working |
 | --- | --- |
 | **In 30 days** | 30 days after you create it |
 | **In 90 days** (default) | 90 days after you create it |
 | **In 1 year** | 365 days after you create it |
 | **Never** | Only when you revoke it or your account loses access |
 
-You can't change the name, scope or expiry of a key in the web UI. Create a new key instead.
+You can't change the name, scope or expiry of a token in the web UI. Create a new token instead.
 
-## Check your keys
+## Check your tokens
 
-**API keys** lists each key's name, first characters, scope, created date, last use and expiry. A key with under 14 days left is highlighted. An expired key can show **Expired** for a short time, then Imagine deletes it from the list.
+**Personal access tokens** lists each token's name, first characters, scope, created date, last use and expiry. A token with under 14 days left is highlighted. An expired token can show **Expired** for a short time, then Imagine deletes it from the list.
 
-## Replace a key
+## Replace a token
 
-1. Create a new key with the scope you need.
+1. Create a new token with the scope you need.
 2. Update the machine or CI secret, and check that it works.
-3. Revoke the old key.
+3. Revoke the old token.
 
-## Revoke a key
+## Revoke a token
 
-1. Open **API keys** and select **Revoke** beside the key.
-2. Check the name and last use, then select **Revoke key**.
+1. Open **Personal access tokens** and select **Revoke** beside the token.
+2. Check the name and last use, then select **Revoke token**.
 
-You can't undo this. Jobs and machines that use the key can no longer log in with it.
+You can't undo this. Jobs and machines that use the token can no longer log in with it.
 
-Docker swaps a key for a registry token that lasts up to 5 minutes. The **Revoke key** dialog says that anything using the key stops working immediately, but a token issued before you revoke the key, or before it expires, keeps working until the token itself expires. Links to layers that Imagine already gave out also work until they expire, 15 minutes by default.
+Docker swaps a personal access token for a registry token that lasts up to 5 minutes. The **Revoke token** dialog says that anything using the personal access token stops working immediately, but a registry token issued before you revoke it, or before it expires, keeps working until the registry token itself expires. Links to layers that Imagine already gave out also work until they expire, 15 minutes by default.
 
 ## Removed and banned users
 
-Removing a user deletes all their keys. Their keys and registry tokens stop working right away. Layer links already given out still work until they expire. Images they pushed stay.
+Removing a user deletes all their personal access tokens. Their personal access tokens and registry tokens stop working right away. Layer links already given out still work until they expire. Images they pushed stay.
 
-A banned user's keys and tokens also stop working. The keys are not deleted, so any that have not expired work again if the ban ends.
+A banned user's personal access tokens and registry tokens also stop working. The personal access tokens are not deleted, so any that have not expired work again if the ban ends.
 
-CI uses the key of the person who created it. Before someone leaves, replace their key in CI with another person's. Imagine has no separate account type for CI.
+CI uses the token of the person who created it. Before someone leaves, replace their token in CI with another person's. Imagine has no separate account type for CI.
 
 ## Limits
 
@@ -74,41 +74,41 @@ CI uses the key of the person who created it. Before someone leaves, replace the
 | --- | --- |
 | Name | 32 characters |
 | Longest set expiry in the web UI | 365 days, or never |
-| Repositories per key | All of them |
-| Request limit per key | None in Imagine |
+| Repositories per token | All of them |
+| Request limit per token | None in Imagine |
 
 Your TLS proxy or network may have its own limits.
 
 ## Log in from a script
 
-Put the key in a secret environment variable, then pass it on standard input. This keeps it out of the shell history and the command line.
+Put the token in a secret environment variable, then pass it on standard input. This keeps it out of the shell history and the command line.
 
 ```bash
-echo "$IMAGINE_KEY" | docker login registry.example.com -u you@example.com --password-stdin
+echo "$IMAGINE_TOKEN" | docker login registry.example.com -u you@example.com --password-stdin
 ```
 
 In CI:
 
-1. Create a key. Use **Read** for jobs that only pull.
-2. Store it as a secret named `IMAGINE_KEY` in your CI system.
+1. Create a token. Use **Read** for jobs that only pull.
+2. Store it as a secret named `IMAGINE_TOKEN` in your CI system.
 3. Run the login, then build and push:
 
 ```bash
 set -eu
 image="registry.example.com/team/app:$VERSION"
 
-echo "$IMAGINE_KEY" | docker login registry.example.com -u you@example.com --password-stdin
+echo "$IMAGINE_TOKEN" | docker login registry.example.com -u you@example.com --password-stdin
 docker build -t "$image" .
 docker push "$image"
 docker logout registry.example.com
 ```
 
-Set `VERSION` to a [valid tag](/push-and-pull/#name-your-image), such as a commit hash. The username can be any text without a colon, but using the key owner's email makes the login easy to recognize.
+Set `VERSION` to a [valid tag](/push-and-pull/#name-your-image), such as a commit hash. The username can be any text without a colon, but using the token owner's email makes the login easy to recognize.
 
 ## GitHub Actions
 
-1. Create a **Read & write** key.
-2. In your GitHub repository's settings, open the Actions secrets and add a repository secret named `IMAGINE_KEY` with the key as its value.
+1. Create a **Read & write** token.
+2. In your GitHub repository's settings, open the Actions secrets and add a repository secret named `IMAGINE_TOKEN` with the token as its value.
 3. Save this file as `.github/workflows/image.yml`. Change the host, email, branch and image name.
 
 ```yaml
@@ -130,7 +130,7 @@ jobs:
         with:
           registry: registry.example.com
           username: you@example.com
-          password: ${{ secrets.IMAGINE_KEY }}
+          password: ${{ secrets.IMAGINE_TOKEN }}
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:

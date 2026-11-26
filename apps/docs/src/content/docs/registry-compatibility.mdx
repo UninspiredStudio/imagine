@@ -14,7 +14,7 @@ Imagine implements push, pull and tag listing from the Docker Registry v2 and OC
 | Method and path | Access | Success | What it does |
 | --- | --- | --- | --- |
 | `GET`, `HEAD` `/v2/` (or `/v2`) | any valid credential | 200 | Version check. Sends `Docker-Distribution-API-Version: registry/2.0`. |
-| `GET`, `HEAD` `/token` | none, or an API key | 200 | Issues a registry token. |
+| `GET`, `HEAD` `/token` | none, or a personal access token | 200 | Issues a registry token. |
 | `GET`, `HEAD` `/v2/<name>/manifests/<reference>` | pull | 200 | Reads a manifest. |
 | `PUT` `/v2/<name>/manifests/<reference>` | push | 201 | Stores a manifest, and moves the tag if the reference is a tag. |
 | `HEAD` `/v2/<name>/blobs/<digest>` | pull | 200 | Reports a blob's size. |
@@ -40,21 +40,21 @@ A push creates the repository.
 ## Authentication
 
 1. A client calls a route without enough access. It gets 401 with a `Bearer` challenge that names the token address, the host as `service`, and the scope it needs: `repository:<name>:pull` or `repository:<name>:pull,push`. The challenge for `/v2/` has no scope.
-2. The client calls `GET /token` with that scope. It sends an [API key](/api-keys/) as the Basic password. The username is ignored. Without credentials, the request is anonymous.
+2. The client calls `GET /token` with that scope. It sends an [personal access token](/personal-access-tokens/) as the Basic password. The username is ignored. Without credentials, the request is anonymous.
 3. The response has `token`, `access_token` (the same value), `expires_in` (`300`) and `issued_at`.
 4. The client repeats the first request with `Authorization: Bearer` and the token.
 
 Rules for tokens:
 
 - A token is valid for 300 seconds. There are no refresh tokens.
-- `/token` still answers 200 when an action is not allowed, but leaves that action out of the token. A read-only key gets a pull-only token.
+- `/token` still answers 200 when an action is not allowed, but leaves that action out of the token. A read-only personal access token gets a pull-only token.
 - Anonymous tokens can only pull from public repositories.
 - `scope` can be repeated, and one value can hold several scopes separated by spaces. Only `repository:<name>:<actions>` with `pull` and `push` grants access. Other scope types, and other lowercase actions, are ignored. A scope with `*` in its actions is ignored whole, so `pull,push,*` grants nothing.
 - Every request checks the owner again. A banned or removed user loses access even if the token has not expired.
-- The key and the repository's visibility are not checked again. After you revoke a key, it expires, or you make a repository private, a token issued earlier keeps its access for up to 5 minutes.
+- The personal access token and the repository's visibility are not checked again. After you revoke a personal access token, it expires, or you make a repository private, a token issued earlier keeps its access for up to 5 minutes.
 - `/token` refuses a registry token as the credential.
 
-You can also send an API key as Basic credentials straight to `/v2` routes. A browser session can pull but not push. Public repositories can be read with no credentials at all.
+You can also send a personal access token as Basic credentials straight to `/v2` routes. A browser session can pull but not push. Public repositories can be read with no credentials at all.
 
 A caller who lacks access gets 401, never 403. A missing repository looks like a private one to an anonymous caller. `/v2/` itself always needs a valid credential, and an anonymous token counts as one.
 

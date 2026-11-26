@@ -184,7 +184,7 @@ function EmptyRegistry() {
   const steps = [
     {
       title: "Log in",
-      hint: "Username: your email. Password: an API key.",
+      hint: "Username: your email. Password: a personal access token.",
       command: `docker login ${host}`,
     },
     { title: "Tag your image", command: `docker tag my-image ${host}/my-image:latest` },
@@ -224,13 +224,13 @@ function EmptyRegistry() {
           <div className="flex w-full items-center gap-3 rounded-md bg-brand-50 px-4 py-3 mobile:flex-col mobile:items-start">
             <FeatherKeyRound className="text-heading-3 font-heading-3 text-brand-600" />
             <div className="flex grow shrink-0 basis-0 flex-col items-start">
-              <span className="text-body-bold font-body-bold text-default-font">You need an API key to push</span>
+              <span className="text-body-bold font-body-bold text-default-font">You need a personal access token to push</span>
               <span className="text-caption font-caption text-secondary-font">
                 Create one with Read and write scope and use it as the password.
               </span>
             </div>
-            <Button iconRight={<FeatherArrowRight />} onClick={() => navigate({ to: "/api-keys" })}>
-              Create API key
+            <Button iconRight={<FeatherArrowRight />} onClick={() => navigate({ to: "/access-tokens" })}>
+              Create personal access token
             </Button>
           </div>
         </div>

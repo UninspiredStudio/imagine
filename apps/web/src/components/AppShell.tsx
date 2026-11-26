@@ -32,7 +32,7 @@ export function AppShell({ user, children }: { user: User; children: ReactNode }
       icon: <FeatherBoxes />,
       active: pathname === "/" || pathname.startsWith("/images/"),
     },
-    { to: "/api-keys", label: "API keys", icon: <FeatherKeyRound />, active: pathname === "/api-keys" },
+    { to: "/access-tokens", label: "Personal access tokens", icon: <FeatherKeyRound />, active: pathname === "/access-tokens" },
     ...(isAdmin(user)
       ? [{ to: "/admin", label: "Admin", icon: <FeatherShield />, active: pathname === "/admin" } as const]
       : []),

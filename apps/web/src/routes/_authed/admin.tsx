@@ -494,7 +494,7 @@ function Users({ currentUserId, host }: { currentUserId: string; host: string })
             </li>
             <li className="flex items-start gap-2">
               <FeatherKeyRound className="mt-0.5 flex-none text-body font-body text-subtext-color" />
-              All their API keys are revoked — CI using them will fail
+              All their personal access tokens are revoked — CI using them will fail
             </li>
             <li className="flex items-start gap-2">
               <FeatherBox className="mt-0.5 flex-none text-body font-body text-subtext-color" />

@@ -13,17 +13,17 @@ This spec covers what each view must contain, what it must do and which states i
   - `GET /api/repositories/tags?name=<repo>`: tag, manifest digest, media type, size and pushed at. Signed in. `pushedAt` is when the manifest was first pushed, not when the tag last moved.
   - `DELETE /api/repositories/tags?name=&tag=`: delete a tag. Its manifest stays. Admin only.
   - `GET /api/repositories/platforms?name=&digest=&digest=`: platforms for up to 25 manifest digests. Signed in.
-  - `GET /api/users`: email, role, joined at, last active, and whether the user is active (not banned). Admin only. Last active can lag web use by a day, and a user who signed out and has not used an API key has none.
+  - `GET /api/users`: email, role, joined at, last active, and whether the user is active (not banned). Admin only. Last active can lag web use by a day, and a user who signed out and has not used a personal access token has none.
   - `PATCH /api/repositories/visibility`: body `{ name, visibility }`. Admin only.
-  - `POST /api/tokens`: create an API key. Body `{ access: "read" | "read-write", name?, expiresIn? }`. Signed in.
+  - `POST /api/tokens`: create a personal access token. Body `{ access: "read" | "read-write", name?, expiresIn? }`. Signed in.
   - `GET /api/invites/lookup?token=`: email and role of a pending invite. Public.
   - `GET /api/invites`, `POST /api/invites`, `DELETE /api/invites?id=`: list pending invites, create one, revoke one. Admin only.
-  - `/api/auth/*` (better-auth): email code sign-in and sessions. The admin plugin adds list users, set role, remove user and ban user under `/api/auth/admin/`. The API key plugin adds list and delete under `/api/auth/api-key/`. No app route wraps these.
+  - `/api/auth/*` (better-auth): email code sign-in and sessions. The admin plugin adds list users, set role, remove user and ban user under `/api/auth/admin/`. The api-key plugin adds list and delete under `/api/auth/api-key/`. No app route wraps these.
 - Still missing:
   - Paging and search on the server. The views do both in the browser.
 - Creating an invite again replaces the pending one, which is how Resend works.
-- Role changes and removal use better-auth's admin routes. The server refuses to remove, demote or ban the last working admin. Removing a user also removes their API keys and the pending invites they sent.
-- Expired API keys are deleted by better-auth when keys are listed, so they do not stay in the list.
+- Role changes and removal use better-auth's admin routes. The server refuses to remove, demote or ban the last working admin. Removing a user also removes their personal access tokens and the pending invites they sent.
+- Expired personal access tokens are deleted by better-auth when tokens are listed, so they do not stay in the list.
 - The data the backend already stores:
   - **Repository:** name (may contain `/`, e.g. `team/app`), visibility (`private` | `public`), created at.
   - **Manifest:** digest, media type, subject digest, artifact type, created at. An image index (multi-arch) points to child manifests, one per platform.
@@ -35,11 +35,11 @@ This spec covers what each view must contain, what it must do and which states i
 | Action | Member | Admin |
 |---|---|---|
 | Sign in, view images, pull | ✓ | ✓ |
-| Push (via API key) | ✓ | ✓ |
+| Push (via personal access token) | ✓ | ✓ |
 | Change repository visibility | — | ✓ |
 | Delete tag / delete image | — | ✓ |
 | Invite, remove users, change roles | — | ✓ |
-| Manage own API keys | ✓ | ✓ |
+| Manage own personal access tokens | ✓ | ✓ |
 
 Member is the `user` role in better-auth. Admin is `admin`.
 
@@ -86,7 +86,7 @@ Hide any action the current user cannot perform. Public repositories can be pull
 Wraps every signed-in view.
 
 - Registry identity: name and host (`PUBLIC_URL` host).
-- Navigation: **Images**, **API keys**, **Admin** (admins only). The current location is indicated.
+- Navigation: **Images**, **Personal access tokens**, **Admin** (admins only). The current location is indicated.
 - User menu: email, role badge (Admin/Member), **Sign out**.
 - Area where per-page titles and breadcrumbs (e.g. Images › `team/app`) appear.
 - Area for global feedback messages (toasts/banners).
@@ -112,11 +112,11 @@ A list of all repositories in the registry.
 **States**
 - Empty registry: explains how to push the first image. It shows these copyable commands, filled in with the real host:
   ```
-  docker login <host>            # username: your email, password: an API key
+  docker login <host>            # username: your email, password: a personal access token
   docker tag my-image <host>/my-image:latest
   docker push <host>/my-image:latest
   ```
-  It also links to API keys ("You need an API key to push").
+  It also links to personal access tokens ("You need a personal access token to push").
 - Search with no results: shows the search term and a "Clear search" action.
 
 ## 4. Image detail
@@ -126,7 +126,7 @@ The page for one repository.
 **Header**
 - Repository name and the full reference `<host>/<name>`, which can be copied.
 - Visibility: shows the current value. Members see it read-only. Admins change it (Private ↔ Public).
-  - Before changing, the user confirms in a dialog that explains the consequence. Making a repository public lets anyone pull it without credentials. Making it private means pulls need an API key.
+  - Before changing, the user confirms in a dialog that explains the consequence. Making a repository public lets anyone pull it without credentials. Making it private means pulls need a personal access token.
 - Summary: tag count, total size, created at, last pushed.
 - **Delete image** (admins only): a destructive action that deletes the repository with all its tags and manifests.
   - The user must type the repository name to confirm. The dialog says how many tags will be removed and that this cannot be undone. Storage is freed later by the sweep.
@@ -168,17 +168,17 @@ Each tag row shows:
 - Email, role, joined at, last active.
 - Marks the current user with "(you)".
 - **Change role** (Member ↔ Admin).
-- **Remove user** (with confirmation). The confirmation says this signs the user out everywhere and revokes all their API keys. The user's pushed images remain.
+- **Remove user** (with confirmation). The confirmation says this signs the user out everywhere and revokes all their personal access tokens. The user's pushed images remain.
 - Guard rails, which show the action as disabled with an explanation:
   - You cannot remove yourself.
   - The last remaining admin cannot be removed or demoted.
 - Search by email when the list is long.
 
-## 6. API key settings
+## 6. Personal access token settings
 
-The current user's own keys. An API key is the password for `docker login`, and the username is the user's email.
+The current user's own tokens. A personal access token is the password for `docker login`, and the username is the user's email.
 
-**Create key**
+**Create token**
 - Name (required, e.g. "CI laptop").
 - Scope: **Read** (pull only) or **Read & write** (pull and push).
 - Expiry: 30 days, 90 days, 1 year, or never (default 90 days).
@@ -188,13 +188,13 @@ The current user's own keys. An API key is the password for `docker login`, and 
   - A ready-to-run `docker login <host> -u <email>` example (password read from stdin).
   - An explicit "Done" action. The secret is never shown again.
 
-**Keys list**
-- Name, scope, a key prefix (e.g. `img_ab12…`) so the key can be identified, created at, last used (or "Never"), expires at.
-- Expired keys stay listed and are marked as expired.
-- **Revoke** (with confirmation). The confirmation says that anything using this key stops working immediately.
+**Tokens list**
+- Name, scope, a token prefix (e.g. `img_ab12…`) so the token can be identified, created at, last used (or "Never"), expires at.
+- Expired tokens stay listed and are marked as expired.
+- **Revoke** (with confirmation). The confirmation says that anything using this token stops working immediately.
 
 **States**
-- No keys: explains what keys are for and offers a create action.
+- No tokens: explains what tokens are for and offers a create action.
 
 ---
 

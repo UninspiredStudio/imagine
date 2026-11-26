@@ -93,12 +93,12 @@ To change the role on an invite, revoke it and send a new one. Expired invites l
 | | Member | Admin |
 | --- | --- | --- |
 | See all images in the web UI, private ones included | yes | yes |
-| Create API keys, and push and pull with them | yes | yes |
+| Create personal access tokens, and push and pull with them | yes | yes |
 | Change an image's visibility | no | yes |
 | Delete images and tags | no | yes |
 | Manage users and invites | no | yes |
 
-Roles apply to the whole registry. There are no per-repository permissions. What a key may do depends on the key, not on its owner's role. See [API keys and CI](/api-keys/).
+Roles apply to the whole registry. There are no per-repository permissions. What a token may do depends on the token, not on its owner's role. See [Personal access tokens and CI](/personal-access-tokens/).
 
 The invite email calls a Member `user`.
 
@@ -106,7 +106,7 @@ The invite email calls a Member `user`.
 
 On **Admin**, under **Users**, choose **Member** or **Admin** next to the person. The change saves at once.
 
-A demoted admin loses admin rights right away. They stay signed in, and their API keys keep working.
+A demoted admin loses admin rights right away. They stay signed in, and their personal access tokens keep working.
 
 ## Remove a user
 
@@ -116,13 +116,13 @@ A demoted admin loses admin rights right away. They stay signed in, and their AP
 This has these effects:
 
 - They are signed out on every device.
-- All their API keys are deleted. CI that uses them fails. Registry tokens already issued stop working too.
+- All their personal access tokens are deleted. CI that uses them fails. Registry tokens already issued stop working too.
 - Invites they sent that are still pending are deleted. Send them again if you still want them.
 - Images they pushed stay.
 
 Presigned download URLs they already have work until they expire. See [Storage](/storage/).
 
-A removed person needs a new invite to come back, and new API keys.
+A removed person needs a new invite to come back, and new personal access tokens.
 
 ### What you cannot do
 

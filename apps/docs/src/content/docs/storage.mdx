@@ -13,7 +13,7 @@ Imagine keeps image blobs (layers and configs) in an S3 bucket. Use the bundled 
 | --- | --- |
 | Blobs | S3 bucket, under `blobs/<algorithm>/<hex>` |
 | Manifests, tags, visibility, and which repository uses which blob | Postgres, `postgres-data` volume |
-| Users, sessions, invites and API keys | Postgres, `postgres-data` volume |
+| Users, sessions, invites and personal access tokens | Postgres, `postgres-data` volume |
 | Uploads in progress | `spool` volume |
 | The bundled SeaweedFS bucket | `seaweed-data` volume |
 

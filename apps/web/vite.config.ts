@@ -13,7 +13,6 @@ export default defineConfig({
   // Proxied so the dev server's origin serves the API, registry and session cookies.
   server: {
     proxy: {
-      // The trailing slash keeps the /api-keys page out of the proxy.
       "/api/": { target: backend, changeOrigin: true },
       "/v2": { target: backend, changeOrigin: true },
       "/token": { target: backend, changeOrigin: true },
