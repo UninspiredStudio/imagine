@@ -67,3 +67,11 @@ test("with neither Plunk nor SMTP, the code goes to the console and nothing is s
   expect(calls).toEqual([]);
   expect(logged.join("\n")).toContain("123456");
 });
+
+test("the sign-in mail carries the code in both its HTML and plain-text parts", async () => {
+  const { signInCodeMail } = await import("./emails.tsx");
+  const rendered = await signInCodeMail("123456", 10);
+  expect(rendered.html).toContain("123456");
+  expect(rendered.html).toContain("rgb(91,79,224)"); // the app's brand-primary
+  expect(rendered.text).toContain("123456");
+});

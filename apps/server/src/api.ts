@@ -22,6 +22,7 @@ import {
   visibility,
 } from "./db/schema.ts";
 import { hashInviteToken, isPending, newInviteToken, pendingInviteForToken } from "./invites.ts";
+import { inviteMail } from "./emails.tsx";
 import type { SendMail } from "./mail.ts";
 import { platformsOf } from "./platforms.ts";
 import { deleteRepository, digestSchema, nameSchema, tagSchema } from "./registry.ts";
@@ -324,11 +325,7 @@ export function createApi(deps: {
 
         const token = newInviteToken();
         try {
-          await deps.sendMail({
-            to: email,
-            subject: "You're invited to Imagine",
-            text: `You've been invited to Imagine as ${body.role}: ${baseUrl}/invite?token=${token}\n\nThe link works for 7 days.`,
-          });
+          await deps.sendMail({ to: email, ...(await inviteMail(body.role, `${baseUrl}/invite?token=${token}`)) });
         } catch (err) {
           console.error(err);
           return c.json({ error: "could not send the invite email" }, 502);

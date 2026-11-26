@@ -6,6 +6,7 @@ import { admin, emailOTP } from "better-auth/plugins";
 import { and, eq, isNull } from "drizzle-orm";
 import type { BunSQLDatabase } from "drizzle-orm/bun-sql/postgres";
 import type { SendMail } from "./mail.ts";
+import { signInCodeMail } from "./emails.tsx";
 import * as schema from "./db/schema.ts";
 import { pendingInviteForEmail } from "./invites.ts";
 import type { Access, Authenticate, Principal } from "./registry.ts";
@@ -80,11 +81,7 @@ export function createAuth(options: AuthOptions) {
         sendVerificationOTP: async ({ email, otp, type }) => {
           // Only sign-in codes are sent. The plugin's other types would need mail this app never sends.
           if (type !== "sign-in" || !(await mayReceiveSignInCode(db, email))) return;
-          await sendMail({
-            to: email,
-            subject: "Your Imagine sign-in code",
-            text: `Your Imagine sign-in code: ${otp}, valid ${CODE_TTL_SECONDS / 60} minutes.\n\nIf you did not ask for this code, ignore this email.`,
-          });
+          await sendMail({ to: email, ...(await signInCodeMail(otp, CODE_TTL_SECONDS / 60)) });
         },
       }),
       admin(),

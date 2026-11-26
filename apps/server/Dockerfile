@@ -5,6 +5,9 @@ COPY package.json bun.lock ./
 COPY apps/server/package.json apps/server/
 RUN bun install --frozen-lockfile --production
 COPY apps/server apps/server
+# The emails use the web app's Tailwind theme. Copied after install, so the components package is not installed.
+COPY packages/components/package.json packages/components/
+COPY packages/components/ui/tailwind.config.js packages/components/ui/
 # The spool is a named volume. Docker copies this directory's ownership into a new volume, so it must be bun-owned here.
 RUN mkdir -p /spool && chown bun:bun /spool
 ENV NODE_ENV=production
